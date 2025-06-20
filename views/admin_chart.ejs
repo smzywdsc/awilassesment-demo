@@ -1,84 +1,111 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Data Visualization</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        #charts { display: flex; flex-wrap: wrap; gap: 40px; }
-        .chart-box { width: 600px; }
-    </style>
+  <meta charset="UTF-8">
+  <title>Data Visualization</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <style>
+    body { background: #f8fafc; }
+    .main-card { max-width: 1400px; margin: 40px auto; background: #fff; border-radius: 14px; box-shadow: 0 2px 18px #e7e7ea; padding: 32px; }
+    #charts { display: flex; flex-wrap: wrap; gap: 40px; margin-top: 28px; }
+    .chart-box { background: #fcfdff; border-radius: 14px; box-shadow: 0 1px 10px #ececf3; padding: 24px 24px 12px 24px; width: 650px; min-width: 360px; }
+    @media (max-width: 1100px) {
+      #charts { flex-direction: column; gap: 32px; }
+      .chart-box { width: 100%; }
+    }
+  </style>
 </head>
 <body>
-    <h2>Data Visualization</h2>
-    <a href="/admin/table">Back to Data Table</a> | 
-    <a href="/admin/logout">Logout</a>
-    <div id="charts">
-      <div class="chart-box" style="overflow-x:auto; width:1000px;">
-        <canvas id="barChart"></canvas>
-      </div>
-      <div class="chart-box">
-        <canvas id="pieChart"></canvas>
+  <div class="container main-card">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h3 class="fw-bold mb-0">Data Visualization</h3>
+      <div>
+        <a href="/admin/table" class="btn btn-outline-secondary btn-sm me-2">Back to Data Table</a>
+        <a href="/admin/logout" class="btn btn-outline-danger btn-sm">Logout</a>
       </div>
     </div>
-    <script>
-      // 1. 处理后端数据
-      const raw = <%- JSON.stringify(chartData) %> ;
-      // 拿到所有组合的“分类名”，和数量
-      const labels = raw.map(r => `${r.theme} / ${r.subtheme} / ${r.category}`);
-      const counts = raw.map(r => r.count);
+    <hr>
+    <div id="charts">
+      <div class="chart-box">
+        <canvas id="barChart" height="320"></canvas>
+      </div>
+      <div class="chart-box">
+        <canvas id="pieChart" height="320"></canvas>
+      </div>
+    </div>
+  </div>
+  <script>
+    // ---- Process backend data ----
+    const raw = <%- JSON.stringify(chartData) %>;
+    // Combine all group names for x-axis
+    const labels = raw.map(r => `${r.theme} / ${r.subtheme} / ${r.category}`);
+    const counts = raw.map(r => r.count);
 
-      // 2. 条形图
-      new Chart(document.getElementById('barChart').getContext('2d'), {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Names Count per Category',
-            data: counts,
-            backgroundColor: 'rgba(54, 162, 235, 0.4)',
-            borderColor: 'rgba(54, 162, 235, 1)',
-            borderWidth: 1
-          }]
+    // ---- Bar Chart: Names Count per Category ----
+    new Chart(document.getElementById('barChart').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Names Count per Category',
+          data: counts,
+          backgroundColor: 'rgba(54, 162, 235, 0.4)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        plugins: {
+          title: { display: true, text: 'Number of Names per Category', font: { size: 18 } },
+          legend: { display: false }
         },
-        options: {
-          plugins: {
-            title: { display: true, text: 'Number of Names per Category' },
-            legend: { display: false }
-          },
         scales: {
-            x: {
-              ticks: {
-                autoSkip: false,
-                maxRotation: 60,   // 60度斜
-                minRotation: 45    // 最小也转45度
-              }
-            },
-            y: { beginAtZero: true, stepSize: 1 }
+          x: {
+            ticks: {
+              autoSkip: false,
+              maxRotation: 60,
+              minRotation: 45,
+              font: { size: 12 }
+            }
+          },
+          y: {
+            beginAtZero: true,
+            stepSize: 1,
+            font: { size: 12 }
           }
         }
-      });
+      }
+    });
 
-      // 3. 饼图（只展示前10个最多的分类，演示用）
-      const sorted = raw.slice().sort((a, b) => b.count - a.count).slice(0, 10);
-      const pieLabels = sorted.map(r => `${r.theme}/${r.subtheme}/${r.category}`);
-      const pieCounts = sorted.map(r => r.count);
+    // ---- Pie Chart: Top 10 Categories ----
+    // Pick top 10 categories by count
+    const sorted = raw.slice().sort((a, b) => b.count - a.count).slice(0, 10);
+    const pieLabels = sorted.map(r => `${r.theme}/${r.subtheme}/${r.category}`);
+    const pieCounts = sorted.map(r => r.count);
+    // Use a color palette for pie chart
+    const pieColors = [
+      '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796',
+      '#5a5c69', '#2e59d9', '#17a673', '#f8f9fc'
+    ];
 
-      new Chart(document.getElementById('pieChart').getContext('2d'), {
-        type: 'pie',
-        data: {
-          labels: pieLabels,
-          datasets: [{
-            label: 'Top 10 Categories',
-            data: pieCounts
-          }]
-        },
-        options: {
-          plugins: {
-            title: { display: true, text: 'Top 10 Categories by Name Count' }
-          }
+    new Chart(document.getElementById('pieChart').getContext('2d'), {
+      type: 'pie',
+      data: {
+        labels: pieLabels,
+        datasets: [{
+          label: 'Top 10 Categories',
+          data: pieCounts,
+          backgroundColor: pieColors,
+        }]
+      },
+      options: {
+        plugins: {
+          title: { display: true, text: 'Top 10 Categories by Name Count', font: { size: 18 } },
+          legend: { position: 'bottom', labels: { font: { size: 13 } } }
         }
-      });
-    </script>
+      }
+    });
+  </script>
 </body>
 </html>
