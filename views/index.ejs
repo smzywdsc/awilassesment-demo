@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Name Random Selector</title>
+    <script src="/js/front.js"></script>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <h2>Name Random Selector</h2>
+    <div>
+        <label>Theme:</label>
+        <select id="themeSelect">
+            <option value="">Select Theme</option>
+            <% themes.forEach(function(t){ %>
+                <option value="<%= t.id %>"><%= t.name %></option>
+            <% }) %>
+        </select>
+        <label>Subtheme:</label>
+        <select id="subthemeSelect" disabled>
+            <option value="">Select Theme First</option>
+        </select>
+        <label>Category:</label>
+        <select id="categorySelect" disabled>
+            <option value="">Select Subtheme First</option>
+        </select>
+        <button id="randomBtn" disabled>Show a Random Name</button>
+    </div>
+    <div id="result" style="margin-top:30px;"></div>
+</body>
+</html>

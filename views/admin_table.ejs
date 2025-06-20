@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Data Management</title>
+    <script src="/js/admin.js"></script>
+    <style>
+      #addFormModal {
+        display:none; position:fixed; left:0; top:0; width:100vw; height:100vh;
+        background:rgba(0,0,0,0.2); z-index:9999;
+      }
+      #addFormModal .modal-content {
+        background:#fff; margin:60px auto; padding:24px; border-radius:8px; width:350px;
+        box-shadow:0 2px 20px #ccc;
+      }
+    </style>
+</head>
+<a href="/admin/assign">Assign X Matrix</a>
+<body>
+    <h2>Data Management Table</h2>
+    <!-- 新增按钮 -->
+    <div style="margin-bottom: 12px;">
+      <button onclick="showAddForm('theme')">Add Theme</button>
+      <button onclick="showAddForm('subtheme')">Add Subtheme</button>
+      <button onclick="showAddForm('category')">Add Category</button>
+      <button onclick="showAddForm('name')">Add Name</button>
+    </div>
+    <!-- 显示/隐藏列 -->
+    <div style="margin:10px 0;">
+      <label><input type="checkbox" class="col-toggle" data-col="0" checked> Name</label>
+      <label><input type="checkbox" class="col-toggle" data-col="1" checked> Theme</label>
+      <label><input type="checkbox" class="col-toggle" data-col="2" checked> Subtheme</label>
+      <label><input type="checkbox" class="col-toggle" data-col="3" checked> Category</label>
+    </div>
+    <a href="/admin/chart">Go to Data Visualization</a> | 
+    <a href="/admin/logout">Logout</a>
+    <input type="text" id="searchInput" placeholder="Search..." style="float:right;">
+    <table border="1" cellpadding="6" style="margin-top:20px;" id="dataTable">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Theme</th>
+                <th>Subtheme</th>
+                <th>Category</th>
+                <!-- 这里可以增加更多列 -->
+            </tr>
+        </thead>
+        <tbody>
+        <% data.forEach(function(row){ %>
+            <tr>
+                <td><%= row.name_text %></td>
+                <td><%= row.theme %></td>
+                <td><%= row.subtheme %></td>
+                <td><%= row.category %></td>
+            </tr>
+        <% }) %>
+        </tbody>
+    </table>
+
+    <!-- 新增弹窗表单 -->
+    <div id="addFormModal">
+      <div class="modal-content">
+        <h3 id="addFormTitle">Add</h3>
+        <form id="addForm" onsubmit="return submitAddForm()">
+          <div id="addFormFields"></div>
+          <button type="submit">Save</button>
+          <button type="button" onclick="closeAddForm()">Cancel</button>
+        </form>
+      </div>
+    </div>
+
+<script>
+  // 列显示/隐藏控制
+  document.querySelectorAll('.col-toggle').forEach(function(checkbox) {
+    checkbox.addEventListener('change', function() {
+      var col = parseInt(this.dataset.col);
+      var display = this.checked ? '' : 'none';
+      document.querySelectorAll('#dataTable thead th')[col].style.display = display;
+      document.querySelectorAll('#dataTable tbody tr').forEach(function(row) {
+        if(row.children[col]) row.children[col].style.display = display;
+      });
+    });
+  });
+  // 搜索功能
+  document.getElementById('searchInput').addEventListener('input', function() {
+    var value = this.value.toLowerCase();
+    var rows = document.querySelectorAll('#dataTable tbody tr');
+    rows.forEach(function(row) {
+      var text = row.innerText.toLowerCase();
+      if (text.indexOf(value) > -1) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  });
+
+  // -------- 新增功能相关 --------
+  function showAddForm(type) {
+    document.getElementById('addFormModal').style.display = 'block';
+    document.getElementById('addFormTitle').innerText = 'Add ' + type.charAt(0).toUpperCase() + type.slice(1);
+    var fieldsHtml = '';
+    if (type === 'theme') {
+      fieldsHtml += 'Theme Name: <input name="theme" required><br>';
+    }
+    if (type === 'subtheme') {
+      fieldsHtml += 'Subtheme Name: <input name="subtheme" required><br>';
+      fieldsHtml += 'Theme (parent): <input name="theme" required><br>';
+    }
+    if (type === 'category') {
+      fieldsHtml += 'Category Name: <input name="category" required><br>';
+      fieldsHtml += 'Subtheme (parent): <input name="subtheme" required><br>';
+    }
+    if (type === 'name') {
+      fieldsHtml += 'Name: <input name="name" required><br>';
+    }
+    document.getElementById('addFormFields').innerHTML = fieldsHtml;
+    document.getElementById('addForm').dataset.type = type;
+  }
+  function closeAddForm() {
+    document.getElementById('addFormModal').style.display = 'none';
+  }
+  function submitAddForm() {
+    var type = document.getElementById('addForm').dataset.type;
+    var form = document.getElementById('addForm');
+    var formData = {};
+    Array.from(form.elements).forEach(function(el) {
+      if (el.name) formData[el.name] = el.value;
+    });
+    fetch('/admin/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: type, data: formData })
+    }).then(resp => resp.json())
+      .then(json => {
+        if (json.success) location.reload();
+        else alert(json.message || 'Failed');
+      });
+    return false;
+  }
+  // 删除
+  function deleteRow(name, theme, subtheme, category) {
+    if (!confirm('Delete this record?')) return;
+    fetch('/admin/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, theme, subtheme, category })
+    }).then(resp => resp.json())
+      .then(json => {
+        if (json.success) location.reload();
+        else alert(json.message || 'Delete failed!');
+      });
+  }
+
+  // 编辑
+  function editRow(name, theme, subtheme, category) {
+    // 复用新增弹窗表单
+    showAddForm('name');
+    // 回填原值
+    setTimeout(() => {
+      document.querySelector('#addForm input[name="name"]').value = name;
+      // 可选：其他字段如 theme/subtheme/category
+    }, 50);
+    // 覆盖提交事件：编辑不新增，而是发 update 请求
+    document.getElementById('addForm').onsubmit = function() {
+      var newName = document.querySelector('#addForm input[name="name"]').value;
+      fetch('/admin/edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ old: { name, theme, subtheme, category }, updated: { name: newName } })
+      }).then(resp => resp.json())
+        .then(json => {
+          if (json.success) location.reload();
+          else alert(json.message || 'Edit failed!');
+        });
+      return false;
+    };
+  }
+</script>
+</body>
+</html>

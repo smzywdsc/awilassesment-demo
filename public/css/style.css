@@ -1,0 +1,3 @@
+body { font-family: Arial, "Microsoft YaHei", sans-serif; background:#f9f9f9; padding:30px; }
+select,button { margin: 0 6px 0 0; }
+#result { background: #fff; border-radius:8px; padding:20px; min-height:40px; box-shadow: 1px 1px 6px #ccc; }
