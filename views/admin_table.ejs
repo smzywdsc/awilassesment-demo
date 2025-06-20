@@ -1,49 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Data Management</title>
-    <script src="/js/admin.js"></script>
-    <style>
-      #addFormModal {
-        display:none; position:fixed; left:0; top:0; width:100vw; height:100vh;
-        background:rgba(0,0,0,0.2); z-index:9999;
-      }
-      #addFormModal .modal-content {
-        background:#fff; margin:60px auto; padding:24px; border-radius:8px; width:350px;
-        box-shadow:0 2px 20px #ccc;
-      }
-    </style>
+  <meta charset="UTF-8">
+  <title>Data Management Table</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <style>
+    body { background: #f8fafc; }
+    .main-card { max-width: 1200px; margin: 36px auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 18px #e7e7ea; padding: 32px 30px 30px 30px;}
+    .table thead th { background: #f3f6fa; font-weight: bold; }
+    .table-striped>tbody>tr:nth-of-type(odd) { background: #f9fbfd; }
+    .table-scroll { overflow-x: auto; }
+    .action-btns { margin-bottom: 16px;}
+    .col-toggle label { margin-right: 16px; font-weight: normal;}
+    .search-bar { width:200px; margin-left:auto; }
+    .modal-backdrop {background:rgba(0,0,0,0.14);}
+    .modal-content {border-radius:10px;}
+    .btn-xs { padding:2px 9px; font-size:0.92rem;}
+  </style>
 </head>
-<a href="/admin/assign">Assign X Matrix</a>
 <body>
-    <h2>Data Management Table</h2>
-    <!-- 新增按钮 -->
-    <div style="margin-bottom: 12px;">
-      <button onclick="showAddForm('theme')">Add Theme</button>
-      <button onclick="showAddForm('subtheme')">Add Subtheme</button>
-      <button onclick="showAddForm('category')">Add Category</button>
-      <button onclick="showAddForm('name')">Add Name</button>
+  <div class="container main-card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h3 class="fw-bold mb-0">Data Management Table</h3>
+      <div>
+        <a href="/admin/assign" class="btn btn-outline-info btn-sm me-2">Assign X Matrix</a>
+        <a href="/admin/chart" class="btn btn-outline-success btn-sm me-2">Go to Data Visualization</a>
+        <a href="/admin/logout" class="btn btn-outline-danger btn-sm">Logout</a>
+      </div>
     </div>
-    <!-- 显示/隐藏列 -->
-    <div style="margin:10px 0;">
-      <label><input type="checkbox" class="col-toggle" data-col="0" checked> Name</label>
-      <label><input type="checkbox" class="col-toggle" data-col="1" checked> Theme</label>
-      <label><input type="checkbox" class="col-toggle" data-col="2" checked> Subtheme</label>
-      <label><input type="checkbox" class="col-toggle" data-col="3" checked> Category</label>
+    <!-- Action Buttons -->
+    <div class="action-btns d-flex align-items-center flex-wrap gap-2 mb-3">
+      <button class="btn btn-primary btn-sm" onclick="showAddForm('theme')">Add Theme</button>
+      <button class="btn btn-primary btn-sm" onclick="showAddForm('subtheme')">Add Subtheme</button>
+      <button class="btn btn-primary btn-sm" onclick="showAddForm('category')">Add Category</button>
+      <button class="btn btn-primary btn-sm" onclick="showAddForm('name')">Add Name</button>
+      <!-- Column toggles -->
+      <div class="form-check col-toggle ms-3">
+        <input class="form-check-input" type="checkbox" data-col="0" id="colName" checked>
+        <label class="form-check-label" for="colName">Name</label>
+      </div>
+      <div class="form-check col-toggle">
+        <input class="form-check-input" type="checkbox" data-col="1" id="colTheme" checked>
+        <label class="form-check-label" for="colTheme">Theme</label>
+      </div>
+      <div class="form-check col-toggle">
+        <input class="form-check-input" type="checkbox" data-col="2" id="colSubtheme" checked>
+        <label class="form-check-label" for="colSubtheme">Subtheme</label>
+      </div>
+      <div class="form-check col-toggle">
+        <input class="form-check-input" type="checkbox" data-col="3" id="colCategory" checked>
+        <label class="form-check-label" for="colCategory">Category</label>
+      </div>
+      <input type="text" id="searchInput" class="form-control form-control-sm search-bar ms-3" placeholder="Search...">
     </div>
-    <a href="/admin/chart">Go to Data Visualization</a> | 
-    <a href="/admin/logout">Logout</a>
-    <input type="text" id="searchInput" placeholder="Search..." style="float:right;">
-    <table border="1" cellpadding="6" style="margin-top:20px;" id="dataTable">
+    <!-- Data Table -->
+    <div class="table-scroll">
+      <table class="table table-bordered table-striped align-middle" id="dataTable">
         <thead>
-            <tr>
-                <th>Name</th>
-                <th>Theme</th>
-                <th>Subtheme</th>
-                <th>Category</th>
-                <!-- 这里可以增加更多列 -->
-            </tr>
+          <tr>
+            <th>Name</th>
+            <th>Theme</th>
+            <th>Subtheme</th>
+            <th>Category</th>
+          </tr>
         </thead>
         <tbody>
         <% data.forEach(function(row){ %>
@@ -55,69 +74,51 @@
             </tr>
         <% }) %>
         </tbody>
-    </table>
-
-    <!-- 新增弹窗表单 -->
-    <div id="addFormModal">
-      <div class="modal-content">
-        <h3 id="addFormTitle">Add</h3>
-        <form id="addForm" onsubmit="return submitAddForm()">
-          <div id="addFormFields"></div>
-          <button type="submit">Save</button>
-          <button type="button" onclick="closeAddForm()">Cancel</button>
-        </form>
+      </table>
+    </div>
+    <!-- Add Form Modal -->
+    <div class="modal" tabindex="-1" id="addFormModal">
+      <div class="modal-dialog">
+        <div class="modal-content p-3">
+          <h4 id="addFormTitle" class="mb-3">Add</h4>
+          <form id="addForm" onsubmit="return submitAddForm()">
+            <div id="addFormFields"></div>
+            <div class="mt-3">
+              <button type="submit" class="btn btn-primary btn-xs me-2">Save</button>
+              <button type="button" class="btn btn-secondary btn-xs" onclick="closeAddForm()">Cancel</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
-
+  </div>
 <script>
-  // 列显示/隐藏控制
-  document.querySelectorAll('.col-toggle').forEach(function(checkbox) {
-    checkbox.addEventListener('change', function() {
-      var col = parseInt(this.dataset.col);
-      var display = this.checked ? '' : 'none';
-      document.querySelectorAll('#dataTable thead th')[col].style.display = display;
-      document.querySelectorAll('#dataTable tbody tr').forEach(function(row) {
-        if(row.children[col]) row.children[col].style.display = display;
-      });
-    });
-  });
-  // 搜索功能
-  document.getElementById('searchInput').addEventListener('input', function() {
-    var value = this.value.toLowerCase();
-    var rows = document.querySelectorAll('#dataTable tbody tr');
-    rows.forEach(function(row) {
-      var text = row.innerText.toLowerCase();
-      if (text.indexOf(value) > -1) {
-        row.style.display = '';
-      } else {
-        row.style.display = 'none';
-      }
-    });
-  });
-
-  // -------- 新增功能相关 --------
+  // Bootstrap modal helpers
   function showAddForm(type) {
     document.getElementById('addFormModal').style.display = 'block';
     document.getElementById('addFormTitle').innerText = 'Add ' + type.charAt(0).toUpperCase() + type.slice(1);
     var fieldsHtml = '';
     if (type === 'theme') {
-      fieldsHtml += 'Theme Name: <input name="theme" required><br>';
+      fieldsHtml += '<label>Theme Name:<input name="theme" class="form-control" required></label>';
     }
     if (type === 'subtheme') {
-      fieldsHtml += 'Subtheme Name: <input name="subtheme" required><br>';
-      fieldsHtml += 'Theme (parent): <input name="theme" required><br>';
+      fieldsHtml += '<label>Subtheme Name:<input name="subtheme" class="form-control" required></label>';
+      fieldsHtml += '<label>Theme (parent):<input name="theme" class="form-control" required></label>';
     }
     if (type === 'category') {
-      fieldsHtml += 'Category Name: <input name="category" required><br>';
-      fieldsHtml += 'Subtheme (parent): <input name="subtheme" required><br>';
+      fieldsHtml += '<label>Category Name:<input name="category" class="form-control" required></label>';
+      fieldsHtml += '<label>Subtheme (parent):<input name="subtheme" class="form-control" required></label>';
     }
     if (type === 'name') {
-      fieldsHtml += 'Name: <input name="name" required><br>';
+      fieldsHtml += '<label>Name:<input name="name" class="form-control" required></label>';
     }
     document.getElementById('addFormFields').innerHTML = fieldsHtml;
     document.getElementById('addForm').dataset.type = type;
+    document.getElementById('addFormModal').classList.add('show');
+    document.getElementById('addFormModal').style.display = 'block';
   }
   function closeAddForm() {
+    document.getElementById('addFormModal').classList.remove('show');
     document.getElementById('addFormModal').style.display = 'none';
   }
   function submitAddForm() {
@@ -138,44 +139,26 @@
       });
     return false;
   }
-  // 删除
-  function deleteRow(name, theme, subtheme, category) {
-    if (!confirm('Delete this record?')) return;
-    fetch('/admin/delete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, theme, subtheme, category })
-    }).then(resp => resp.json())
-      .then(json => {
-        if (json.success) location.reload();
-        else alert(json.message || 'Delete failed!');
+  // Column toggle logic
+  document.querySelectorAll('.col-toggle input').forEach(function(checkbox) {
+    checkbox.addEventListener('change', function() {
+      var col = parseInt(this.dataset.col);
+      var display = this.checked ? '' : 'none';
+      document.querySelectorAll('#dataTable thead th')[col].style.display = display;
+      document.querySelectorAll('#dataTable tbody tr').forEach(function(row) {
+        if(row.children[col]) row.children[col].style.display = display;
       });
-  }
-
-  // 编辑
-  function editRow(name, theme, subtheme, category) {
-    // 复用新增弹窗表单
-    showAddForm('name');
-    // 回填原值
-    setTimeout(() => {
-      document.querySelector('#addForm input[name="name"]').value = name;
-      // 可选：其他字段如 theme/subtheme/category
-    }, 50);
-    // 覆盖提交事件：编辑不新增，而是发 update 请求
-    document.getElementById('addForm').onsubmit = function() {
-      var newName = document.querySelector('#addForm input[name="name"]').value;
-      fetch('/admin/edit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ old: { name, theme, subtheme, category }, updated: { name: newName } })
-      }).then(resp => resp.json())
-        .then(json => {
-          if (json.success) location.reload();
-          else alert(json.message || 'Edit failed!');
-        });
-      return false;
-    };
-  }
+    });
+  });
+  // Search bar filtering
+  document.getElementById('searchInput').addEventListener('input', function() {
+    var value = this.value.toLowerCase();
+    var rows = document.querySelectorAll('#dataTable tbody tr');
+    rows.forEach(function(row) {
+      var text = row.innerText.toLowerCase();
+      row.style.display = (text.indexOf(value) > -1) ? '' : 'none';
+    });
+  });
 </script>
 </body>
 </html>
