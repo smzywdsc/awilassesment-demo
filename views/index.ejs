@@ -3,29 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <title>Name Random Selector</title>
-    <script src="/js/front.js"></script>
+    <!-- Bootstrap 5 CSS & Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/css/style.css">
+    <script defer src="/js/front.js"></script>
+    <style>
+      body { background: #fafbfc; }
+      .card { min-height: 80px; }
+    </style>
 </head>
 <body>
-    <h2>Name Random Selector</h2>
-    <div>
-        <label>Theme:</label>
-        <select id="themeSelect">
-            <option value="">Select Theme</option>
-            <% themes.forEach(function(t){ %>
-                <option value="<%= t.id %>"><%= t.name %></option>
-            <% }) %>
+  <div class="container py-5">
+    <h2 class="mb-4 fw-bold">Name Random Selector</h2>
+    <form class="row g-3 align-items-end mb-4" id="selector-form" autocomplete="off">
+      <div class="col-md-3">
+        <label for="themeSelect" class="form-label">Theme</label>
+        <select id="themeSelect" class="form-select">
+          <option value="">Select Theme</option>
+          <% themes.forEach(function(t){ %>
+              <option value="<%= t.id %>"><%= t.name %></option>
+          <% }) %>
         </select>
-        <label>Subtheme:</label>
-        <select id="subthemeSelect" disabled>
-            <option value="">Select Theme First</option>
+      </div>
+      <div class="col-md-3">
+        <label for="subthemeSelect" class="form-label">Subtheme</label>
+        <select id="subthemeSelect" class="form-select" disabled>
+          <option value="">Select Theme First</option>
         </select>
-        <label>Category:</label>
-        <select id="categorySelect" disabled>
-            <option value="">Select Subtheme First</option>
+      </div>
+      <div class="col-md-3">
+        <label for="categorySelect" class="form-label">Category</label>
+        <select id="categorySelect" class="form-select" disabled>
+          <option value="">Select Subtheme First</option>
         </select>
-        <button id="randomBtn" disabled>Show a Random Name</button>
+      </div>
+      <div class="col-md-2">
+        <button id="randomBtn" type="button" class="btn btn-primary w-100" disabled>
+          <i class="bi bi-shuffle"></i> Show a Random Name
+        </button>
+      </div>
+      <div class="col-md-1 d-flex align-items-end">
+        <span id="count-info" class="text-muted small"></span>
+      </div>
+    </form>
+    <div class="card shadow p-5 text-center">
+      <span class="display-5" id="result"></span>
     </div>
-    <div id="result" style="margin-top:30px;"></div>
+  </div>
 </body>
 </html>
