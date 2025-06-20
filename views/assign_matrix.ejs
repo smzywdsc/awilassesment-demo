@@ -6,28 +6,53 @@
   <title>Assign Names to Categories</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <style>
-    table.matrix th, table.matrix td { text-align: center; vertical-align: middle; }
-    table.matrix th.rotate {
+    body { background: #f8fafc; }
+    .main-card {
+      max-width: 1200px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 20px #ececf2;
+      padding: 36px 28px 32px 28px;
+    }
+    .matrix th, .matrix td { text-align: center; vertical-align: middle; }
+    .matrix th.rotate {
       height: 120px; white-space: nowrap;
     }
-    table.matrix th.rotate > div {
+    .matrix th.rotate > div {
       transform: translate(0,40px) rotate(-45deg);
       width: 40px;
     }
-    td.active-x { background: #cce5ff !important; }
+    .active-x { background: #cce5ff !important; }
     .folded { display: none !important; }
-    .theme-link, .subtheme-link { cursor: pointer; color: #0d6efd; text-decoration: underline; }
+    .theme-link, .subtheme-link { cursor: pointer; color: #2a71d4; text-decoration: underline; }
+    .matrix th, .matrix td { border: 1px solid #e2e6ea !important; }
+    .matrix th { background: #f5f6fa; font-weight: 500; }
+    .matrix td { background: #fff; }
+    @media (max-width: 1100px) {
+      .main-card { padding: 10px 2px; }
+      .matrix { font-size: 13px; }
+    }
+    /* 滚动表格 */
+    .matrix-scroll { overflow-x: auto; }
+    .matrix { min-width: 1000px; }
   </style>
 </head>
 <body>
-  <div class="container mt-4">
-    <h3>Assign Names to Categories (“x” Assignment Matrix) <span style="font-size:14px; color:#666;">[v20240620-multicolumn-grouped]</span></h3>
-    <a href="/admin/table">← Back to Data Management</a>
-    <table class="table table-bordered matrix">
+  <div class="main-card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="fw-bold mb-0">
+        Assign Names to Categories <span class="fs-6 text-muted">[“x” Assignment Matrix]</span>
+        <span style="font-size:13px; color:#888;">v20240620-multicolumn-grouped</span>
+      </h4>
+      <a href="/admin/table" class="btn btn-outline-secondary btn-sm">&larr; Back to Data Management</a>
+    </div>
+    <div class="matrix-scroll">
+    <table class="table matrix table-bordered table-hover align-middle">
       <thead>
         <!-- First row: theme -->
         <tr>
-          <th rowspan="3">Name</th>
+          <th rowspan="3" style="min-width:110px;">Name</th>
           <% categoriesGroup.forEach(function(theme, i) { %>
             <th colspan="<%= theme.subthemes.reduce((s,st)=>s+st.categories.length,0) %>" key="theme-<%=i%>">
               <span class="theme-link" data-theme="<%= theme.theme %>"><%= theme.theme %></span>
@@ -88,8 +113,9 @@
         <% }) %>
       </tbody>
     </table>
-    <div>
-      <b>Tip:</b> Click the theme/subtheme name to fold/unfold columns. <br>
+    </div>
+    <div class="alert alert-info mt-4" style="max-width:650px;">
+      <b>Tip:</b> Click the <b>theme</b> or <b>subtheme</b> name to fold/unfold columns. <br>
       Check/uncheck boxes to assign/remove “x” (changes are automatically saved to the database).
     </div>
   </div>
