@@ -14,46 +14,83 @@
       width: 40px;
     }
     td.active-x { background: #cce5ff !important; }
+    .folded { display: none !important; }
+    .theme-link, .subtheme-link { cursor: pointer; color: #0d6efd; text-decoration: underline; }
   </style>
 </head>
 <body>
   <div class="container mt-4">
-    <h3>Assign Names to Categories (“x”分配管理)</h3>
+    <h3>Assign Names to Categories (“x” Assignment Matrix)</h3>
     <a href="/admin/table">← Back to Data Management</a>
     <table class="table table-bordered matrix">
       <thead>
+        <!-- First row: theme -->
         <tr>
-          <th>Name</th>
-          <% categories.forEach(function(cat) { %>
-            <th class="rotate"><div>
-              <%= cat.theme %> / <%= cat.subtheme %> / <%= cat.category %>
-            </div></th>
+          <th rowspan="3">Name</th>
+          <% categoriesGroup.forEach(theme => { %>
+            <th colspan="<%= theme.subthemes.reduce((s,st)=>s+st.categories.length,0) %>">
+              <span class="theme-link" data-theme="<%= theme.theme %>"><%= theme.theme %></span>
+            </th>
           <% }) %>
+        </tr>
+        <!-- Second row: subtheme -->
+        <tr>
+          <% categoriesGroup.forEach(theme => {
+              theme.subthemes.forEach(sub => { %>
+            <th colspan="<%= sub.categories.length %>"
+                class="subtheme-header"
+                data-theme="<%= theme.theme %>"
+                data-subtheme="<%= sub.subtheme %>">
+              <span class="subtheme-link"
+                    data-theme="<%= theme.theme %>"
+                    data-subtheme="<%= sub.subtheme %>"><%= sub.subtheme %></span>
+            </th>
+          <% }) }) %>
+        </tr>
+        <!-- Third row: category -->
+        <tr>
+          <% categoriesGroup.forEach(theme => {
+              theme.subthemes.forEach(sub => {
+                sub.categories.forEach(cat => { %>
+            <th class="cat-header"
+                data-theme="<%= theme.theme %>"
+                data-subtheme="<%= sub.subtheme %>"
+                data-cat="<%= cat.category %>">
+              <%= cat.category %>
+            </th>
+          <% }) }) }) %>
         </tr>
       </thead>
       <tbody>
         <% names.forEach(function(name) { %>
           <tr>
             <td><%= name.name_text %></td>
-            <% categories.forEach(function(cat) { 
-                // 是否已分配 x
-                var checked = ncs.find(nc => nc.name_id === name.id && nc.category_id === cat.id) ? 'checked' : '';
+            <% categoriesGroup.forEach(theme => {
+                 theme.subthemes.forEach(sub => {
+                   sub.categories.forEach(cat => {
+                      var checked = ncs.find(nc => nc.name_id === name.id && nc.category_id === cat.id) ? 'checked' : '';
             %>
-              <td class="<%= checked ? 'active-x' : '' %>">
+              <td class="cat-cell <%= checked ? 'active-x' : '' %>"
+                  data-theme="<%= theme.theme %>"
+                  data-subtheme="<%= sub.subtheme %>"
+                  data-cat="<%= cat.category %>">
                 <input type="checkbox"
                   data-nameid="<%= name.id %>"
                   data-catid="<%= cat.id %>"
                   <%= checked %>
                   onchange="toggleAssign(this)">
               </td>
-            <% }) %>
+            <% }) }) }) %>
           </tr>
         <% }) %>
       </tbody>
     </table>
-    <div>Tip: Check/uncheck boxes to assign/remove “x” (关系自动保存到数据库)</div>
+    <div>Tip: Click the theme/subtheme name to fold/unfold columns. <br>
+      Check/uncheck boxes to assign/remove “x” (changes are automatically saved to the database).
+    </div>
   </div>
   <script>
+    // Assign/remove relationship
     function toggleAssign(cb) {
       const name_id = cb.dataset.nameid;
       const category_id = cb.dataset.catid;
@@ -74,6 +111,29 @@
         }
       });
     }
+
+    // Theme folding
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('.theme-link').forEach(a => {
+        a.addEventListener('click', function(){
+          const theme = this.dataset.theme;
+          // Hide/show all subtheme/category headers & cells for this theme
+          document.querySelectorAll(`.subtheme-header[data-theme='${theme}'],
+                                    .cat-header[data-theme='${theme}'],
+                                    .cat-cell[data-theme='${theme}']`)
+            .forEach(el => el.classList.toggle('folded'));
+        });
+      });
+      // Subtheme folding
+      document.querySelectorAll('.subtheme-link').forEach(a => {
+        a.addEventListener('click', function(){
+          const theme = this.dataset.theme, subtheme = this.dataset.subtheme;
+          document.querySelectorAll(`.cat-header[data-theme='${theme}'][data-subtheme='${subtheme}'],
+                                    .cat-cell[data-theme='${theme}'][data-subtheme='${subtheme}']`)
+            .forEach(el => el.classList.toggle('folded'));
+        });
+      });
+    });
   </script>
 </body>
 </html>
