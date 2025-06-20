@@ -1,6 +1,6 @@
-# Tool Set Assessment Demo
+# AWIL Assessment Demo
 
-This is a fullstack demo for the “tool_set” assessment, using Node.js (Express) + MySQL + EJS + Chart.js.
+This is a fullstack demo for the assessment, using Node.js (Express) + MySQL + EJS + Chart.js.
 
 ## Features
 
@@ -19,3 +19,24 @@ This is a fullstack demo for the “tool_set” assessment, using Node.js (Expre
 
 ```bash
 npm install
+2. Set up database
+	•	Import all tables in /init.sql or run provided scripts.
+	•	Import Excel data to MySQL (see /import_excel.py).
+
+3. Configure DB
+	•	Set environment variables in .env:
+DB_HOST=xxx
+DB_USER=xxx
+DB_PASSWORD=xxx
+DB_DATABASE=tool_set
+DB_PORT=3306
+
+4. Run locally
+node server.js
+
+5. Admin login
+	•	Username: apple
+	•	Password: apple
+
+Deploy
+	•	Deploy to Railway or Render. Set environment variables as above.
