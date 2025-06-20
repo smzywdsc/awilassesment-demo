@@ -9,7 +9,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// 数据库连接配置
+// Database connection config
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
@@ -19,16 +19,15 @@ const db = mysql.createConnection({
   charset: 'utf8mb4'
 });
 
-// 首页路由
+// Home route: render themes
 app.get('/', (req, res) => {
-  // 查询所有主题
   db.query('SELECT id, name FROM theme', (err, results) => {
-    if (err) return res.status(500).send('数据库错误');
+    if (err) return res.status(500).send('Database error');
     res.render('index', { themes: results });
   });
 });
 
-// 查询子主题
+// Get subthemes for a theme
 app.get('/api/subthemes', (req, res) => {
   const themeId = req.query.themeId;
   db.query('SELECT id, name FROM subtheme WHERE theme_id = ?', [themeId], (err, results) => {
@@ -37,7 +36,7 @@ app.get('/api/subthemes', (req, res) => {
   });
 });
 
-// 查询分类
+// Get categories for a subtheme
 app.get('/api/categories', (req, res) => {
   const subthemeId = req.query.subthemeId;
   db.query('SELECT id, name FROM category WHERE subtheme_id = ?', [subthemeId], (err, results) => {
@@ -46,15 +45,13 @@ app.get('/api/categories', (req, res) => {
   });
 });
 
-// 随机获取名字 & 总数
+// Get random name & total count for a category
 app.get('/api/random-name', (req, res) => {
     const categoryId = req.query.categoryId;
-    // 查询总数
     db.query('SELECT COUNT(*) as cnt FROM name_category WHERE category_id=?', [categoryId], (err, cntRes) => {
         if (err) return res.status(500).json({ error: err.message });
         const count = cntRes[0].cnt;
         if (count === 0) return res.json({ name: null, count: 0 });
-        // 随机选一个名字
         db.query(
             `SELECT n.name_text FROM name n
              JOIN name_category nc ON n.id = nc.name_id
@@ -71,19 +68,19 @@ app.get('/api/random-name', (req, res) => {
 
 const session = require('express-session');
 
-// session配置
+// Session config
 app.use(session({
-    secret: 'your-secret-key', // 随意填写
+    secret: 'your-secret-key',
     resave: false,
     saveUninitialized: true
 }));
 
-// 登录页
+// Admin login page
 app.get('/admin/login', (req, res) => {
     res.render('admin_login', { error: '' });
 });
 
-// 登录提交
+// Admin login submit
 app.post('/admin/login', express.urlencoded({ extended: true }), (req, res) => {
     const { username, password } = req.body;
     if (username === 'apple' && password === 'apple') {
@@ -94,17 +91,16 @@ app.post('/admin/login', express.urlencoded({ extended: true }), (req, res) => {
     }
 });
 
-// 登出
+// Admin logout
 app.get('/admin/logout', (req, res) => {
     req.session.destroy(() => {
         res.redirect('/admin/login');
     });
 });
 
-// 后台管理页（需要登录）
+// Data management (list table, require login)
 app.get('/admin/table', (req, res) => {
     if (!req.session.isAdmin) return res.redirect('/admin/login');
-    // 查询所有数据（可自定义复杂查询）
     db.query(`
         SELECT n.id as name_id, n.name_text, t.name as theme, st.name as subtheme, c.name as category
         FROM name n
@@ -118,10 +114,9 @@ app.get('/admin/table', (req, res) => {
     });
 });
 
-// 后台可视化页（需要登录）
+// Data visualization (require login)
 app.get('/admin/chart', (req, res) => {
     if (!req.session.isAdmin) return res.redirect('/admin/login');
-    // 查询分类下名字数量分布
     db.query(`
         SELECT t.name AS theme, st.name AS subtheme, c.name AS category, COUNT(nc.name_id) as count
         FROM category c
@@ -135,6 +130,7 @@ app.get('/admin/chart', (req, res) => {
     });
 });
 
+// Add new entry (theme, subtheme, category, name)
 app.post('/admin/add', (req, res) => {
   if (!req.session.isAdmin) return res.status(401).json({success:false, message:"Not logged in"});
   const { type, data } = req.body;
@@ -144,7 +140,6 @@ app.post('/admin/add', (req, res) => {
     sql = 'INSERT INTO theme (name) VALUES (?)';
     params = [data.theme];
   } else if (type === 'subtheme') {
-    // 先查theme_id
     db.query('SELECT id FROM theme WHERE name=?', [data.theme], (err, result) => {
       if (err || !result.length) return res.json({success:false, message:'Theme not found'});
       sql = 'INSERT INTO subtheme (name, theme_id) VALUES (?, ?)';
@@ -178,11 +173,10 @@ app.post('/admin/add', (req, res) => {
   });
 });
 
-// 删除（假设只删除 name_category 关联，不物理删除 name/category 等主表）
+// Delete (only name_category relation, not physical deletion of main tables)
 app.post('/admin/delete', (req, res) => {
   if (!req.session.isAdmin) return res.status(401).json({success:false});
   const { name, theme, subtheme, category } = req.body;
-  // 查找各个id
   db.query(
     `SELECT n.id as name_id, c.id as category_id
      FROM name n
@@ -202,24 +196,37 @@ app.post('/admin/delete', (req, res) => {
   );
 });
 
-// 编辑
+// Edit (example: edit name_text)
 app.post('/admin/edit', (req, res) => {
   if (!req.session.isAdmin) return res.status(401).json({success:false});
   const { old, updated } = req.body;
-  // 这里只演示编辑 name_text
   db.query('UPDATE name SET name_text=? WHERE name_text=?', [updated.name, old.name], (err) => {
     if (err) return res.json({success:false, message:'DB error'});
     res.json({success:true});
   });
 });
 
+// Utility: Group flat category list into theme > subtheme > categories
+function groupCategories(categories) {
+  const themes = {};
+  categories.forEach(cat => {
+    if (!themes[cat.theme]) themes[cat.theme] = {};
+    if (!themes[cat.theme][cat.subtheme]) themes[cat.theme][cat.subtheme] = [];
+    themes[cat.theme][cat.subtheme].push({ id: cat.id, category: cat.category });
+  });
+  return Object.entries(themes).map(([theme, subObj]) => ({
+    theme,
+    subthemes: Object.entries(subObj).map(([subtheme, categories]) => ({
+      subtheme, categories
+    }))
+  }));
+}
+
+// Assign matrix with grouped category header (require login)
 app.get('/admin/assign', (req, res) => {
   if (!req.session.isAdmin) return res.redirect('/admin/login');
-
-  // 查询所有 name
   db.query('SELECT id, name_text FROM name ORDER BY name_text', (err, names) => {
     if (err) return res.status(500).send('DB error');
-    // 查询所有 category 及完整路径（theme-subtheme-category）
     const catSql = `
       SELECT c.id, t.name AS theme, st.name AS subtheme, c.name AS category
       FROM category c
@@ -229,16 +236,17 @@ app.get('/admin/assign', (req, res) => {
     `;
     db.query(catSql, (err2, categories) => {
       if (err2) return res.status(500).send('DB error');
-      // 查询所有已有分配关系
       db.query('SELECT * FROM name_category', (err3, ncs) => {
         if (err3) return res.status(500).send('DB error');
-        res.render('assign_matrix', { names, categories, ncs });
+        const categoriesGroup = groupCategories(categories); // Pass grouped structure
+        res.render('assign_matrix', { names, ncs, categoriesGroup });
       });
     });
   });
 });
 
-app.post('/admin/assign-x', (req, res) => {
+// Assign/remove "x" for a name/category (require login)
+app.post('/admin/assign-x', express.json(), (req, res) => {
   if (!req.session.isAdmin) return res.status(401).json({success:false});
   const { name_id, category_id, action } = req.body;
   if (action === 'add') {
@@ -256,6 +264,7 @@ app.post('/admin/assign-x', (req, res) => {
   }
 });
 
-app.listen(3000, () => {
-  console.log('Server started at http://localhost:3000');
+// Start server
+app.listen(port, () => {
+  console.log(`Server started at http://localhost:${port}`);
 });
