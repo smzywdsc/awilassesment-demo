@@ -105,19 +105,25 @@ app.get('/admin/logout', (req, res) => {
 
 // Data management table (require login)
 app.get('/admin/table', (req, res) => {
-    if (!req.session.isAdmin) return res.redirect('/admin/login');
-    db.query(`
-        SELECT n.id as name_id, n.name_text, t.name as theme, st.name as subtheme, c.name as category
-        FROM name n
-        LEFT JOIN name_category nc ON n.id=nc.name_id
-        LEFT JOIN category c ON nc.category_id=c.id
-        LEFT JOIN subtheme st ON c.subtheme_id=st.id
-        LEFT JOIN theme t ON st.theme_id=t.id
-        ORDER BY CAST(n.name_text AS UNSIGNED), n.name_text
-    `, (err, results) => {
-        if (err) return res.status(500).send('Database Error');
-        res.render('admin_table', { data: results });
+  if (!req.session.isAdmin) return res.redirect('/admin/login');
+  db.query('SELECT id, name_text FROM name ORDER BY CAST(name_text AS UNSIGNED), name_text', (err, names) => {
+    if (err) return res.status(500).send('DB error');
+    const catSql = `
+      SELECT c.id, t.name AS theme, st.name AS subtheme, c.name AS category
+      FROM category c
+      JOIN subtheme st ON c.subtheme_id=st.id
+      JOIN theme t ON st.theme_id=t.id
+      ORDER BY t.name, st.name, c.name
+    `;
+    db.query(catSql, (err2, categories) => {
+      if (err2) return res.status(500).send('DB error');
+      db.query('SELECT * FROM name_category', (err3, ncs) => {
+        if (err3) return res.status(500).send('DB error');
+        const categoriesGroup = groupCategories(categories);
+        res.render('admin_table', { names, ncs, categoriesGroup });
+      });
     });
+  });
 });
 
 // Data visualization (require login)
