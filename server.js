@@ -5,16 +5,13 @@ const mysql = require('mysql2');
 const app = express();
 const port = 3000;
 
-// Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// View engine setup
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Database connection config
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
@@ -24,7 +21,14 @@ const db = mysql.createConnection({
   charset: 'utf8mb4'
 });
 
-// Home page: render theme selector
+const session = require('express-session');
+app.use(session({
+    secret: 'your-secret-key',
+    resave: false,
+    saveUninitialized: true
+}));
+
+// ----------------- Public Portal APIs -----------------
 app.get('/', (req, res) => {
   db.query('SELECT id, name FROM theme', (err, results) => {
     if (err) return res.status(500).send('Database error');
@@ -32,7 +36,6 @@ app.get('/', (req, res) => {
   });
 });
 
-// API: get subthemes for a theme
 app.get('/api/subthemes', (req, res) => {
   const themeId = req.query.themeId;
   db.query('SELECT id, name FROM subtheme WHERE theme_id = ?', [themeId], (err, results) => {
@@ -41,7 +44,6 @@ app.get('/api/subthemes', (req, res) => {
   });
 });
 
-// API: get categories for a subtheme
 app.get('/api/categories', (req, res) => {
   const subthemeId = req.query.subthemeId;
   db.query('SELECT id, name FROM category WHERE subtheme_id = ?', [subthemeId], (err, results) => {
@@ -50,107 +52,110 @@ app.get('/api/categories', (req, res) => {
   });
 });
 
-// API: get random name and total count for a category
 app.get('/api/random-name', (req, res) => {
-    const categoryId = req.query.categoryId;
-    db.query('SELECT COUNT(*) as cnt FROM name_category WHERE category_id=?', [categoryId], (err, cntRes) => {
-        if (err) return res.status(500).json({ error: err.message });
-        const count = cntRes[0].cnt;
-        if (count === 0) return res.json({ name: null, count: 0 });
-        db.query(
-            `SELECT n.name_text FROM name n
-             JOIN name_category nc ON n.id = nc.name_id
-             WHERE nc.category_id=?
-             ORDER BY RAND() LIMIT 1`,
-            [categoryId],
-            (err2, nameRes) => {
-                if (err2) return res.status(500).json({ error: err2.message });
-                res.json({ name: nameRes[0].name_text, count });
-            }
-        );
-    });
+  const categoryId = req.query.categoryId;
+  db.query('SELECT COUNT(*) as cnt FROM name_category WHERE category_id=?', [categoryId], (err, cntRes) => {
+    if (err) return res.status(500).json({ error: err.message });
+    const count = cntRes[0].cnt;
+    if (count === 0) return res.json({ name: null, count: 0 });
+    db.query(
+      `SELECT n.name_text FROM name n
+       JOIN name_category nc ON n.id = nc.name_id
+       WHERE nc.category_id=?
+       ORDER BY RAND() LIMIT 1`,
+      [categoryId],
+      (err2, nameRes) => {
+        if (err2) return res.status(500).json({ error: err2.message });
+        res.json({ name: nameRes[0].name_text, count });
+      }
+    );
+  });
 });
 
-const session = require('express-session');
-
-// Session config
-app.use(session({
-    secret: 'your-secret-key', // Change this for production
-    resave: false,
-    saveUninitialized: true
-}));
-
-// Admin login page
+// ------------------- Admin Portal & Auth -------------------
 app.get('/admin/login', (req, res) => {
-    res.render('admin_login', { error: '' });
+  res.render('admin_login', { error: '' });
 });
-
-// Admin login submit
 app.post('/admin/login', (req, res) => {
-    const { username, password } = req.body;
-    if (username === 'apple' && password === 'apple') {
-        req.session.isAdmin = true;
-        res.redirect('/admin/table');
-    } else {
-        res.render('admin_login', { error: 'Invalid username or password.' });
-    }
+  const { username, password } = req.body;
+  if (username === 'apple' && password === 'apple') {
+    req.session.isAdmin = true;
+    res.redirect('/admin/table');
+  } else {
+    res.render('admin_login', { error: 'Invalid username or password.' });
+  }
 });
-
-// Admin logout
 app.get('/admin/logout', (req, res) => {
-    req.session.destroy(() => {
-        res.redirect('/admin/login');
-    });
+  req.session.destroy(() => {
+    res.redirect('/admin/login');
+  });
 });
 
-// Data management table (require login)
+// Helper: group all themes, subthemes, and categories, even if empty
+function groupCategoriesAll(themes, subthemes, categories) {
+  return themes.map(theme => {
+    const themeSubs = subthemes.filter(st => st.theme_id === theme.id);
+    return {
+      theme: theme.name,
+      subthemes: themeSubs.length > 0 ? themeSubs.map(st => ({
+        subtheme: st.name,
+        categories: categories.filter(cat => cat.subtheme_id === st.id)
+                              .map(cat => ({ id: cat.id, category: cat.name }))
+      })) : []
+    };
+  });
+}
+
+// ----------- Main Matrix Management (shows all themes immediately) ----------
 app.get('/admin/table', (req, res) => {
   if (!req.session.isAdmin) return res.redirect('/admin/login');
   db.query('SELECT id, name_text FROM name ORDER BY CAST(name_text AS UNSIGNED), name_text', (err, names) => {
     if (err) return res.status(500).send('DB error');
-    const catSql = `
-      SELECT c.id, t.name AS theme, st.name AS subtheme, c.name AS category
-      FROM category c
-      JOIN subtheme st ON c.subtheme_id=st.id
-      JOIN theme t ON st.theme_id=t.id
-      ORDER BY t.name, st.name, c.name
-    `;
-    db.query(catSql, (err2, categories) => {
-      if (err2) return res.status(500).send('DB error');
-      db.query('SELECT * FROM name_category', (err3, ncs) => {
-        if (err3) return res.status(500).send('DB error');
-        const categoriesGroup = groupCategories(categories);
-        res.render('admin_table', { names, ncs, categoriesGroup });
+    db.query('SELECT id, name FROM theme ORDER BY id', (err1, themes) => {
+      if (err1) return res.status(500).send('DB error');
+      db.query('SELECT id, name, theme_id FROM subtheme ORDER BY id', (err2, subthemes) => {
+        if (err2) return res.status(500).send('DB error');
+        db.query('SELECT id, name, subtheme_id FROM category ORDER BY id', (err3, categories) => {
+          if (err3) return res.status(500).send('DB error');
+          db.query('SELECT * FROM name_category', (err4, ncs) => {
+            if (err4) return res.status(500).send('DB error');
+            const categoriesGroup = groupCategoriesAll(themes, subthemes, categories);
+            res.render('admin_table', { names, ncs, categoriesGroup });
+          });
+        });
       });
     });
   });
 });
 
-// Data visualization (require login)
+// ------------------- Data Visualization -------------------
 app.get('/admin/chart', (req, res) => {
-    if (!req.session.isAdmin) return res.redirect('/admin/login');
-    db.query(`
-        SELECT t.name AS theme, st.name AS subtheme, c.name AS category, COUNT(nc.name_id) as count
-        FROM category c
-        LEFT JOIN subtheme st ON c.subtheme_id=st.id
-        LEFT JOIN theme t ON st.theme_id=t.id
-        LEFT JOIN name_category nc ON c.id=nc.category_id
-        GROUP BY c.id
-    `, (err, results) => {
-        if (err) return res.status(500).send('Database Error');
-        res.render('admin_chart', { chartData: results });
-    });
+  if (!req.session.isAdmin) return res.redirect('/admin/login');
+  db.query(`
+      SELECT t.name AS theme, st.name AS subtheme, c.name AS category, COUNT(nc.name_id) as count
+      FROM category c
+      LEFT JOIN subtheme st ON c.subtheme_id=st.id
+      LEFT JOIN theme t ON st.theme_id=t.id
+      LEFT JOIN name_category nc ON c.id=nc.category_id
+      GROUP BY c.id
+  `, (err, results) => {
+      if (err) return res.status(500).send('Database Error');
+      res.render('admin_chart', { chartData: results });
+  });
 });
 
-// Add new entry (theme, subtheme, category, name)
+// --------- Add theme, subtheme, category, or name ----------
 app.post('/admin/add', (req, res) => {
   if (!req.session.isAdmin) return res.status(401).json({success:false, message:"Not logged in"});
   const { type, data } = req.body;
-
   let sql = '', params = [];
   if (type === 'theme') {
     sql = 'INSERT INTO theme (name) VALUES (?)';
     params = [data.theme];
+    db.query(sql, params, (err) => {
+      if (err) return res.json({success:false, message:'DB error'});
+      res.json({success:true});
+    });
   } else if (type === 'subtheme') {
     db.query('SELECT id FROM theme WHERE name=?', [data.theme], (err, result) => {
       if (err || !result.length) return res.json({success:false, message:'Theme not found'});
@@ -161,7 +166,6 @@ app.post('/admin/add', (req, res) => {
         res.json({success:true});
       });
     });
-    return;
   } else if (type === 'category') {
     db.query('SELECT id FROM subtheme WHERE name=?', [data.subtheme], (err, result) => {
       if (err || !result.length) return res.json({success:false, message:'Subtheme not found'});
@@ -172,20 +176,19 @@ app.post('/admin/add', (req, res) => {
         res.json({success:true});
       });
     });
-    return;
   } else if (type === 'name') {
     sql = 'INSERT INTO name (name_text) VALUES (?)';
     params = [data.name];
+    db.query(sql, params, (err) => {
+      if (err) return res.json({success:false, message:'DB error'});
+      res.json({success:true});
+    });
   } else {
     return res.json({success:false, message:'Unknown type'});
   }
-  db.query(sql, params, (err) => {
-    if (err) return res.json({success:false, message:'DB error'});
-    res.json({success:true});
-  });
 });
 
-// Delete mapping relation only (not name itself)
+// -------------- Delete mapping or name ---------------
 app.post('/admin/delete', (req, res) => {
   if (!req.session.isAdmin) return res.status(401).json({success:false});
   const { name, theme, subtheme, category } = req.body;
@@ -207,18 +210,14 @@ app.post('/admin/delete', (req, res) => {
     }
   );
 });
-
-// Hard delete name (and all its mappings)
 app.post('/admin/delete-name', (req, res) => {
   if (!req.session.isAdmin) return res.status(401).json({success:false});
   const { name } = req.body;
   db.query('SELECT id FROM name WHERE name_text=?', [name], (err, rows) => {
     if (err || !rows.length) return res.json({success:false, message:'Name not found'});
     const nameId = rows[0].id;
-    // Delete all mappings
     db.query('DELETE FROM name_category WHERE name_id=?', [nameId], (err2) => {
       if (err2) return res.json({success:false, message:'Delete mapping error'});
-      // Delete the name itself
       db.query('DELETE FROM name WHERE id=?', [nameId], (err3) => {
         if (err3) return res.json({success:false, message:'Delete name error'});
         res.json({success:true});
@@ -226,57 +225,6 @@ app.post('/admin/delete-name', (req, res) => {
     });
   });
 });
-
-// Edit (example: edit name_text)
-app.post('/admin/edit', (req, res) => {
-  if (!req.session.isAdmin) return res.status(401).json({success:false});
-  const { old, updated } = req.body;
-  db.query('UPDATE name SET name_text=? WHERE name_text=?', [updated.name, old.name], (err) => {
-    if (err) return res.json({success:false, message:'DB error'});
-    res.json({success:true});
-  });
-});
-
-// Utility: group flat category list into theme > subtheme > categories
-function groupCategories(categories) {
-  const themes = {};
-  categories.forEach(cat => {
-    if (!themes[cat.theme]) themes[cat.theme] = {};
-    if (!themes[cat.theme][cat.subtheme]) themes[cat.theme][cat.subtheme] = [];
-    themes[cat.theme][cat.subtheme].push({ id: cat.id, category: cat.category });
-  });
-  return Object.entries(themes).map(([theme, subObj]) => ({
-    theme,
-    subthemes: Object.entries(subObj).map(([subtheme, categories]) => ({
-      subtheme, categories
-    }))
-  }));
-}
-
-// Assign matrix with grouped category header (require login)
-app.get('/admin/assign', (req, res) => {
-  if (!req.session.isAdmin) return res.redirect('/admin/login');
-  db.query('SELECT id, name_text FROM name ORDER BY CAST(name_text AS UNSIGNED), name_text', (err, names) => {
-    if (err) return res.status(500).send('DB error');
-    const catSql = `
-      SELECT c.id, t.name AS theme, st.name AS subtheme, c.name AS category
-      FROM category c
-      JOIN subtheme st ON c.subtheme_id=st.id
-      JOIN theme t ON st.theme_id=t.id
-      ORDER BY t.name, st.name, c.name
-    `;
-    db.query(catSql, (err2, categories) => {
-      if (err2) return res.status(500).send('DB error');
-      db.query('SELECT * FROM name_category', (err3, ncs) => {
-        if (err3) return res.status(500).send('DB error');
-        const categoriesGroup = groupCategories(categories);
-        res.render('assign_matrix', { names, ncs, categoriesGroup });
-      });
-    });
-  });
-});
-
-// Assign/remove "x" for a name/category (require login)
 app.post('/admin/assign-x', (req, res) => {
   if (!req.session.isAdmin) return res.status(401).json({success:false});
   const { name_id, category_id, action } = req.body;
@@ -295,7 +243,6 @@ app.post('/admin/assign-x', (req, res) => {
   }
 });
 
-// Start server
 app.listen(port, () => {
   console.log(`Server started at http://localhost:${port}`);
 });
