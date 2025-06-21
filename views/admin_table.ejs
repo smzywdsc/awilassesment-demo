@@ -85,7 +85,7 @@
           <tr>
             <td class="td-name" data-theme-col="name">
               <button class="btn btn-danger btn-xs me-1 delete-btn" onclick="deleteName('<%= name.name_text %>')">Delete</button>
-              <%= name.name_text %>
+              <span class="name-text"><%= name.name_text %></span>
             </td>
             <% categoriesGroup.forEach(function(theme) {
                  theme.subthemes.forEach(function(sub) {
@@ -137,7 +137,7 @@
   document.getElementById('nameFilterInput').addEventListener('input', function() {
     const val = this.value.trim().toLowerCase();
     document.querySelectorAll('#matrixTable tbody tr').forEach(tr => {
-      const nameCell = tr.querySelector('td[data-theme-col="name"]');
+      const nameCell = tr.querySelector('span.name-text');
       if (!val || (nameCell && nameCell.textContent.toLowerCase().includes(val))) {
         tr.style.display = '';
       } else {
