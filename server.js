@@ -7,8 +7,6 @@ const port = 3000;
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Parse JSON and form-urlencoded bodies for all POST requests
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -26,7 +24,7 @@ const db = mysql.createConnection({
   charset: 'utf8mb4'
 });
 
-// Home route: render themes
+// Home page: render theme selector
 app.get('/', (req, res) => {
   db.query('SELECT id, name FROM theme', (err, results) => {
     if (err) return res.status(500).send('Database error');
@@ -34,7 +32,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// Get subthemes for a theme
+// API: get subthemes for a theme
 app.get('/api/subthemes', (req, res) => {
   const themeId = req.query.themeId;
   db.query('SELECT id, name FROM subtheme WHERE theme_id = ?', [themeId], (err, results) => {
@@ -43,7 +41,7 @@ app.get('/api/subthemes', (req, res) => {
   });
 });
 
-// Get categories for a subtheme
+// API: get categories for a subtheme
 app.get('/api/categories', (req, res) => {
   const subthemeId = req.query.subthemeId;
   db.query('SELECT id, name FROM category WHERE subtheme_id = ?', [subthemeId], (err, results) => {
@@ -52,7 +50,7 @@ app.get('/api/categories', (req, res) => {
   });
 });
 
-// Get random name & total count for a category
+// API: get random name and total count for a category
 app.get('/api/random-name', (req, res) => {
     const categoryId = req.query.categoryId;
     db.query('SELECT COUNT(*) as cnt FROM name_category WHERE category_id=?', [categoryId], (err, cntRes) => {
@@ -180,7 +178,7 @@ app.post('/admin/add', (req, res) => {
   });
 });
 
-// Delete (only name_category relation, not physical deletion of main tables)
+// Delete mapping relation only (not name itself)
 app.post('/admin/delete', (req, res) => {
   if (!req.session.isAdmin) return res.status(401).json({success:false});
   const { name, theme, subtheme, category } = req.body;
@@ -203,6 +201,25 @@ app.post('/admin/delete', (req, res) => {
   );
 });
 
+// Hard delete name (and all its mappings)
+app.post('/admin/delete-name', (req, res) => {
+  if (!req.session.isAdmin) return res.status(401).json({success:false});
+  const { name } = req.body;
+  db.query('SELECT id FROM name WHERE name_text=?', [name], (err, rows) => {
+    if (err || !rows.length) return res.json({success:false, message:'Name not found'});
+    const nameId = rows[0].id;
+    // Delete all mappings
+    db.query('DELETE FROM name_category WHERE name_id=?', [nameId], (err2) => {
+      if (err2) return res.json({success:false, message:'Delete mapping error'});
+      // Delete the name itself
+      db.query('DELETE FROM name WHERE id=?', [nameId], (err3) => {
+        if (err3) return res.json({success:false, message:'Delete name error'});
+        res.json({success:true});
+      });
+    });
+  });
+});
+
 // Edit (example: edit name_text)
 app.post('/admin/edit', (req, res) => {
   if (!req.session.isAdmin) return res.status(401).json({success:false});
@@ -213,7 +230,7 @@ app.post('/admin/edit', (req, res) => {
   });
 });
 
-// Utility: Group flat category list into theme > subtheme > categories
+// Utility: group flat category list into theme > subtheme > categories
 function groupCategories(categories) {
   const themes = {};
   categories.forEach(cat => {
@@ -245,7 +262,7 @@ app.get('/admin/assign', (req, res) => {
       if (err2) return res.status(500).send('DB error');
       db.query('SELECT * FROM name_category', (err3, ncs) => {
         if (err3) return res.status(500).send('DB error');
-        const categoriesGroup = groupCategories(categories); // Pass grouped structure
+        const categoriesGroup = groupCategories(categories);
         res.render('assign_matrix', { names, ncs, categoriesGroup });
       });
     });
