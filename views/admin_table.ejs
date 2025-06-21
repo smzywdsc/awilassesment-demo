@@ -122,7 +122,7 @@
     </div>
   </div>
 <script>
-  //Toggle function for the subject column, supports merging multiple layers of headers and hiding them together
+  // Toggle columns
   document.querySelectorAll('.col-toggle input[type=checkbox][data-theme-toggle]').forEach(function(checkbox) {
     checkbox.addEventListener('change', function() {
       var theme = this.dataset.themeToggle;
@@ -133,12 +133,13 @@
     });
   });
 
-  // Name search/filter
+  // Name search/filter: only match full name (strict match)
   document.getElementById('nameFilterInput').addEventListener('input', function() {
     const val = this.value.trim().toLowerCase();
     document.querySelectorAll('#matrixTable tbody tr').forEach(tr => {
       const nameCell = tr.querySelector('span.name-text');
-      if (!val || (nameCell && nameCell.textContent.toLowerCase().includes(val))) {
+      // strict: only show when full match
+      if (!val || (nameCell && nameCell.textContent.trim().toLowerCase() === val)) {
         tr.style.display = '';
       } else {
         tr.style.display = 'none';
