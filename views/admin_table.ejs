@@ -62,7 +62,7 @@
             <th>Theme</th>
             <th>Subtheme</th>
             <th>Category</th>
-            <th>Action</th> <!-- Delete/编辑按钮 -->
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -73,7 +73,13 @@
                 <td><%= row.subtheme %></td>
                 <td><%= row.category %></td>
                 <td>
-                  <button class="btn btn-danger btn-xs" onclick="deleteRow('<%= row.name_text %>', '<%= row.theme %>', '<%= row.subtheme %>', '<%= row.category %>')">Delete</button>
+                  <% if (!row.theme && !row.subtheme && !row.category) { %>
+                    <button class="btn btn-danger btn-xs"
+                      onclick="deleteName('<%= row.name_text %>')">Delete</button>
+                  <% } else { %>
+                    <button class="btn btn-danger btn-xs"
+                      onclick="deleteRow('<%= row.name_text %>', '<%= row.theme %>', '<%= row.subtheme %>', '<%= row.category %>')">Delete</button>
+                  <% } %>
                 </td>
             </tr>
         <% }) %>
@@ -164,13 +170,26 @@
     });
   });
 
-  // ----------- Delete Function -----------
+  // ----------- Delete Functions -----------
   function deleteRow(name, theme, subtheme, category) {
-    if (!confirm('Delete this record?')) return;
+    if (!confirm('Delete this record (name-category relation)?')) return;
     fetch('/admin/delete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, theme, subtheme, category })
+    }).then(resp => resp.json())
+      .then(json => {
+        if (json.success) location.reload();
+        else alert(json.message || 'Delete failed!');
+      });
+  }
+
+  function deleteName(name) {
+    if (!confirm('Delete this name (all records)?')) return;
+    fetch('/admin/delete-name', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
     }).then(resp => resp.json())
       .then(json => {
         if (json.success) location.reload();
