@@ -62,6 +62,7 @@
             <th>Theme</th>
             <th>Subtheme</th>
             <th>Category</th>
+            <th>Action</th> <!-- Delete/编辑按钮 -->
           </tr>
         </thead>
         <tbody>
@@ -71,6 +72,9 @@
                 <td><%= row.theme %></td>
                 <td><%= row.subtheme %></td>
                 <td><%= row.category %></td>
+                <td>
+                  <button class="btn btn-danger btn-xs" onclick="deleteRow('<%= row.name_text %>', '<%= row.theme %>', '<%= row.subtheme %>', '<%= row.category %>')">Delete</button>
+                </td>
             </tr>
         <% }) %>
         </tbody>
@@ -159,6 +163,20 @@
       row.style.display = (text.indexOf(value) > -1) ? '' : 'none';
     });
   });
+
+  // ----------- Delete Function -----------
+  function deleteRow(name, theme, subtheme, category) {
+    if (!confirm('Delete this record?')) return;
+    fetch('/admin/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, theme, subtheme, category })
+    }).then(resp => resp.json())
+      .then(json => {
+        if (json.success) location.reload();
+        else alert(json.message || 'Delete failed!');
+      });
+  }
 </script>
 </body>
 </html>
