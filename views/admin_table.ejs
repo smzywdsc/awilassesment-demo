@@ -45,7 +45,7 @@
         <input class="form-check-input" type="checkbox" data-col="0" id="colName" checked>
         <label class="form-check-label" for="colName">Name</label>
       </div>
-      <% categoriesGroup.forEach(function(theme, tIdx) { %>
+      <% categoriesGroup.forEach(function(theme) { %>
         <div class="form-check col-toggle">
           <input class="form-check-input" type="checkbox" data-theme="<%= theme.theme %>" checked>
           <label class="form-check-label"><%= theme.theme %></label>
@@ -61,8 +61,8 @@
       <thead>
         <!-- First row: theme -->
         <tr>
-          <th style="min-width:120px;">Name</th>
-          <% categoriesGroup.forEach(function(theme, i) { %>
+          <th rowspan="3" style="min-width:150px;"></th>
+          <% categoriesGroup.forEach(function(theme) { %>
             <th colspan="<%= theme.subthemes.reduce((s,st)=>s+st.categories.length,0) %>" data-theme="<%= theme.theme %>">
               <%= theme.theme %>
             </th>
@@ -70,6 +70,7 @@
         </tr>
         <!-- Second row: subtheme -->
         <tr>
+          <th></th>
           <% categoriesGroup.forEach(function(theme) {
                theme.subthemes.forEach(function(sub) { %>
             <th colspan="<%= sub.categories.length %>" data-theme="<%= theme.theme %>">
@@ -79,6 +80,7 @@
         </tr>
         <!-- Third row: category -->
         <tr>
+          <th></th>
           <% categoriesGroup.forEach(function(theme) {
                theme.subthemes.forEach(function(sub) {
                  sub.categories.forEach(function(cat) { %>
@@ -176,7 +178,6 @@
       });
     return false;
   }
-
   // Column toggle logic (theme columns)
   document.querySelectorAll('.col-toggle input[data-theme]').forEach(function(checkbox) {
     checkbox.addEventListener('change', function() {
