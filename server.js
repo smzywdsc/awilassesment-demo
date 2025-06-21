@@ -113,6 +113,7 @@ app.get('/admin/table', (req, res) => {
         LEFT JOIN category c ON nc.category_id=c.id
         LEFT JOIN subtheme st ON c.subtheme_id=st.id
         LEFT JOIN theme t ON st.theme_id=t.id
+        ORDER BY CAST(n.name_text AS UNSIGNED), n.name_text
     `, (err, results) => {
         if (err) return res.status(500).send('Database Error');
         res.render('admin_table', { data: results });
@@ -249,7 +250,7 @@ function groupCategories(categories) {
 // Assign matrix with grouped category header (require login)
 app.get('/admin/assign', (req, res) => {
   if (!req.session.isAdmin) return res.redirect('/admin/login');
-  db.query('SELECT id, name_text FROM name ORDER BY name_text', (err, names) => {
+  db.query('SELECT id, name_text FROM name ORDER BY CAST(name_text AS UNSIGNED), name_text', (err, names) => {
     if (err) return res.status(500).send('DB error');
     const catSql = `
       SELECT c.id, t.name AS theme, st.name AS subtheme, c.name AS category
