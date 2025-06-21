@@ -1,4 +1,4 @@
-<!-- v20240620-multicolumn-grouped (with feedback notice) -->
+<!-- v20240620-multicolumn-grouped (simple, no folding) -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -24,8 +24,6 @@
       width: 40px;
     }
     .active-x { background: #cce5ff !important; }
-    .folded { display: none !important; }
-    .theme-link, .subtheme-link { cursor: pointer; color: #2a71d4; text-decoration: underline; }
     .matrix th, .matrix td { border: 1px solid #e2e6ea !important; }
     .matrix th { background: #f5f6fa; font-weight: 500; }
     .matrix td { background: #fff; }
@@ -57,23 +55,17 @@
         <tr>
           <th rowspan="3" style="min-width:110px;">Name</th>
           <% categoriesGroup.forEach(function(theme, i) { %>
-            <th colspan="<%= theme.subthemes.reduce((s,st)=>s+st.categories.length,0) %>" key="theme-<%=i%>">
-              <span class="theme-link" data-theme="<%= theme.theme %>"><%= theme.theme %></span>
+            <th colspan="<%= theme.subthemes.reduce((s,st)=>s+st.categories.length,0) %>">
+              <%= theme.theme %>
             </th>
           <% }) %>
         </tr>
         <!-- Second row: subtheme -->
         <tr>
           <% categoriesGroup.forEach(function(theme) {
-               theme.subthemes.forEach(function(sub, j) { %>
-            <th colspan="<%= sub.categories.length %>"
-                class="subtheme-header"
-                data-theme="<%= theme.theme %>"
-                data-subtheme="<%= sub.subtheme %>"
-                key="subtheme-<%= theme.theme %>-<%=j%>">
-              <span class="subtheme-link"
-                    data-theme="<%= theme.theme %>"
-                    data-subtheme="<%= sub.subtheme %>"><%= sub.subtheme %></span>
+               theme.subthemes.forEach(function(sub) { %>
+            <th colspan="<%= sub.categories.length %>">
+              <%= sub.subtheme %>
             </th>
           <% }) }) %>
         </tr>
@@ -81,12 +73,8 @@
         <tr>
           <% categoriesGroup.forEach(function(theme) {
                theme.subthemes.forEach(function(sub) {
-                 sub.categories.forEach(function(cat, k) { %>
-            <th class="cat-header"
-                data-theme="<%= theme.theme %>"
-                data-subtheme="<%= sub.subtheme %>"
-                data-cat="<%= cat.category %>"
-                key="cat-<%=cat.id%>">
+                 sub.categories.forEach(function(cat) { %>
+            <th>
               <%= cat.category %>
             </th>
           <% }) }) }) %>
@@ -101,10 +89,7 @@
                    sub.categories.forEach(function(cat) {
                       var checked = ncs.find(nc => nc.name_id === name.id && nc.category_id === cat.id) ? 'checked' : '';
             %>
-              <td class="cat-cell <%= checked ? 'active-x' : '' %>"
-                  data-theme="<%= theme.theme %>"
-                  data-subtheme="<%= sub.subtheme %>"
-                  data-cat="<%= cat.category %>">
+              <td class="cat-cell <%= checked ? 'active-x' : '' %>">
                 <input type="checkbox"
                   data-nameid="<%= name.id %>"
                   data-catid="<%= cat.id %>"
@@ -118,8 +103,7 @@
     </table>
     </div>
     <div class="alert alert-info mt-4" style="max-width:650px;">
-      <b>Tip:</b> Click the <b>theme</b> or <b>subtheme</b> name to fold/unfold columns. <br>
-      Check/uncheck boxes to assign/remove “x” (changes are automatically saved to the database).
+      <b>Tip:</b> Check/uncheck boxes to assign/remove “x” (changes are automatically saved to the database).
     </div>
   </div>
   <script>
@@ -159,27 +143,6 @@
         }
       });
     }
-
-    // Theme and subtheme folding
-    document.addEventListener("DOMContentLoaded", function() {
-      document.querySelectorAll('.theme-link').forEach(a => {
-        a.addEventListener('click', function(){
-          const theme = this.dataset.theme;
-          document.querySelectorAll(`.subtheme-header[data-theme='${theme}'],
-                                    .cat-header[data-theme='${theme}'],
-                                    .cat-cell[data-theme='${theme}']`)
-            .forEach(el => el.classList.toggle('folded'));
-        });
-      });
-      document.querySelectorAll('.subtheme-link').forEach(a => {
-        a.addEventListener('click', function(){
-          const theme = this.dataset.theme, subtheme = this.dataset.subtheme;
-          document.querySelectorAll(`.cat-header[data-theme='${theme}'][data-subtheme='${subtheme}'],
-                                    .cat-cell[data-theme='${theme}'][data-subtheme='${subtheme}']`)
-            .forEach(el => el.classList.toggle('folded'));
-        });
-      });
-    });
   </script>
 </body>
 </html>
