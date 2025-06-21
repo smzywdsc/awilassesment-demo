@@ -5,7 +5,14 @@ const mysql = require('mysql2');
 const app = express();
 const port = 3000;
 
+// Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Parse JSON and form-urlencoded bodies for all POST requests
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// View engine setup
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
@@ -70,7 +77,7 @@ const session = require('express-session');
 
 // Session config
 app.use(session({
-    secret: 'your-secret-key',
+    secret: 'your-secret-key', // Change this for production
     resave: false,
     saveUninitialized: true
 }));
@@ -81,7 +88,7 @@ app.get('/admin/login', (req, res) => {
 });
 
 // Admin login submit
-app.post('/admin/login', express.urlencoded({ extended: true }), (req, res) => {
+app.post('/admin/login', (req, res) => {
     const { username, password } = req.body;
     if (username === 'apple' && password === 'apple') {
         req.session.isAdmin = true;
@@ -98,7 +105,7 @@ app.get('/admin/logout', (req, res) => {
     });
 });
 
-// Data management (list table, require login)
+// Data management table (require login)
 app.get('/admin/table', (req, res) => {
     if (!req.session.isAdmin) return res.redirect('/admin/login');
     db.query(`
@@ -246,7 +253,7 @@ app.get('/admin/assign', (req, res) => {
 });
 
 // Assign/remove "x" for a name/category (require login)
-app.post('/admin/assign-x', express.json(), (req, res) => {
+app.post('/admin/assign-x', (req, res) => {
   if (!req.session.isAdmin) return res.status(401).json({success:false});
   const { name_id, category_id, action } = req.body;
   if (action === 'add') {
