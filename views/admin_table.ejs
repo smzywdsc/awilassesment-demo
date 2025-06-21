@@ -17,13 +17,14 @@
     .modal-content {border-radius:10px;}
     .btn-xs { padding:2px 9px; font-size:0.92rem;}
     .active-x { background: #cce5ff !important; }
-    .matrix th, .matrix td { text-align: center; vertical-align: middle; }
+    .matrix th, .matrix td { text-align: center; vertical-align: middle; min-width:44px;}
     .matrix th { border: 1px solid #e2e6ea !important; background: #f5f6fa; font-weight: 500;}
     .matrix td { border: 1px solid #e2e6ea !important; background: #fff;}
     .matrix-scroll { overflow-x: auto; }
     .matrix { min-width: 1000px; }
     #assignNotice { transition: opacity 0.35s; }
     #nameFilterInput { max-width: 120px; margin-bottom: 2px; padding: 2px 8px; font-size: 15px;}
+    .delete-btn { min-width: 70px; }
   </style>
 </head>
 <body>
@@ -40,7 +41,6 @@
       </div>
     </div>
     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-      <!-- Column toggles -->
       <div class="form-check col-toggle ms-1">
         <input class="form-check-input" type="checkbox" data-col="0" id="colName" checked>
         <label class="form-check-label" for="colName">Name</label>
@@ -53,40 +53,30 @@
       <% }) %>
       <input type="text" id="nameFilterInput" class="form-control form-control-sm search-bar ms-3" placeholder="Filter Name...">
     </div>
-    <!-- Feedback notice bar -->
     <div id="assignNotice" class="alert alert-success d-none" style="position:sticky;top:10px;z-index:99;"></div>
-    <!-- Matrix Table -->
     <div class="matrix-scroll">
     <table class="table matrix table-bordered table-hover align-middle" id="matrixTable">
       <thead>
-        <!-- First row: theme -->
+        <!-- First row: Theme -->
         <tr>
-          <th rowspan="3" style="min-width:150px;"></th>
+          <th rowspan="3" style="min-width:160px;">Name</th>
           <% categoriesGroup.forEach(function(theme) { %>
-            <th colspan="<%= theme.subthemes.reduce((s,st)=>s+st.categories.length,0) %>" data-theme="<%= theme.theme %>">
-              <%= theme.theme %>
-            </th>
+            <th colspan="<%= theme.subthemes.reduce((s,st)=>s+st.categories.length,0) %>"><%= theme.theme %></th>
           <% }) %>
         </tr>
-        <!-- Second row: subtheme -->
+        <!-- Second row: Subtheme -->
         <tr>
-          <th></th>
           <% categoriesGroup.forEach(function(theme) {
                theme.subthemes.forEach(function(sub) { %>
-            <th colspan="<%= sub.categories.length %>" data-theme="<%= theme.theme %>">
-              <%= sub.subtheme %>
-            </th>
+            <th colspan="<%= sub.categories.length %>"><%= sub.subtheme %></th>
           <% }) }) %>
         </tr>
-        <!-- Third row: category -->
+        <!-- Third row: Category -->
         <tr>
-          <th></th>
           <% categoriesGroup.forEach(function(theme) {
                theme.subthemes.forEach(function(sub) {
                  sub.categories.forEach(function(cat) { %>
-            <th data-theme="<%= theme.theme %>">
-              <%= cat.category %>
-            </th>
+            <th><%= cat.category %></th>
           <% }) }) }) %>
         </tr>
       </thead>
@@ -94,7 +84,7 @@
         <% names.forEach(function(name) { %>
           <tr>
             <td>
-              <button class="btn btn-danger btn-xs me-1" onclick="deleteName('<%= name.name_text %>')">Delete</button>
+              <button class="btn btn-danger btn-xs me-1 delete-btn" onclick="deleteName('<%= name.name_text %>')">Delete</button>
               <%= name.name_text %>
             </td>
             <% categoriesGroup.forEach(function(theme) {
@@ -102,7 +92,7 @@
                    sub.categories.forEach(function(cat) {
                       var checked = ncs.find(nc => nc.name_id === name.id && nc.category_id === cat.id) ? 'checked' : '';
             %>
-              <td class="cat-cell <%= checked ? 'active-x' : '' %>" data-theme="<%= theme.theme %>">
+              <td class="cat-cell <%= checked ? 'active-x' : '' %>">
                 <input type="checkbox"
                   data-nameid="<%= name.id %>"
                   data-catid="<%= cat.id %>"
@@ -132,7 +122,6 @@
     </div>
   </div>
 <script>
-  // Bootstrap modal helpers
   function showAddForm(type) {
     document.getElementById('addFormModal').style.display = 'block';
     document.getElementById('addFormTitle').innerText = 'Add ' + type.charAt(0).toUpperCase() + type.slice(1);
@@ -178,18 +167,15 @@
       });
     return false;
   }
-  // Column toggle logic (theme columns)
   document.querySelectorAll('.col-toggle input[data-theme]').forEach(function(checkbox) {
     checkbox.addEventListener('change', function() {
       var theme = this.dataset.theme;
       var display = this.checked ? '' : 'none';
-      // Hide/show all headers and cells of this theme
       document.querySelectorAll('th[data-theme="'+theme+'"], td[data-theme="'+theme+'"]').forEach(function(cell) {
         cell.style.display = display;
       });
     });
   });
-  // Name search/filter
   document.getElementById('nameFilterInput').addEventListener('input', function() {
     const val = this.value.trim().toLowerCase();
     document.querySelectorAll('#matrixTable tbody tr').forEach(tr => {
@@ -201,7 +187,6 @@
       }
     });
   });
-  // Assign/remove relationship with feedback
   function showNotice(msg, type='success') {
     const bar = document.getElementById('assignNotice');
     bar.className = 'alert alert-' + type;
@@ -235,7 +220,6 @@
       }
     });
   }
-  // Delete Name (hard delete)
   function deleteName(name) {
     if (!confirm('Delete this name and all its assignments?')) return;
     fetch('/admin/delete-name', {
