@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Data Management Table</title>
+  <title>Database Management Table</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <style>
     body { background: #f8fafc; }
@@ -16,75 +16,102 @@
     .modal-backdrop {background:rgba(0,0,0,0.14);}
     .modal-content {border-radius:10px;}
     .btn-xs { padding:2px 9px; font-size:0.92rem;}
+    .active-x { background: #cce5ff !important; }
+    .matrix th, .matrix td { text-align: center; vertical-align: middle; }
+    .matrix th { border: 1px solid #e2e6ea !important; background: #f5f6fa; font-weight: 500;}
+    .matrix td { border: 1px solid #e2e6ea !important; background: #fff;}
+    .matrix-scroll { overflow-x: auto; }
+    .matrix { min-width: 1000px; }
+    #assignNotice { transition: opacity 0.35s; }
+    #nameFilterInput { max-width: 120px; margin-bottom: 2px; padding: 2px 8px; font-size: 15px;}
   </style>
 </head>
 <body>
   <div class="container main-card">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h3 class="fw-bold mb-0">Data Management Table</h3>
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+      <h3 class="fw-bold mb-0">Database Management Table</h3>
       <div>
-        <a href="/admin/assign" class="btn btn-outline-info btn-sm me-2">Assign X Matrix</a>
-        <a href="/admin/chart" class="btn btn-outline-success btn-sm me-2">Go to Data Visualization</a>
-        <a href="/admin/logout" class="btn btn-outline-danger btn-sm">Logout</a>
+        <button class="btn btn-primary btn-sm" onclick="showAddForm('theme')">Add Theme</button>
+        <button class="btn btn-primary btn-sm" onclick="showAddForm('subtheme')">Add Subtheme</button>
+        <button class="btn btn-primary btn-sm" onclick="showAddForm('category')">Add Category</button>
+        <button class="btn btn-primary btn-sm" onclick="showAddForm('name')">Add Name</button>
+        <a href="/admin/chart" class="btn btn-outline-success btn-sm ms-2">Go to Data Visualization</a>
+        <a href="/admin/logout" class="btn btn-outline-danger btn-sm ms-2">Logout</a>
       </div>
     </div>
-    <!-- Action Buttons -->
-    <div class="action-btns d-flex align-items-center flex-wrap gap-2 mb-3">
-      <button class="btn btn-primary btn-sm" onclick="showAddForm('theme')">Add Theme</button>
-      <button class="btn btn-primary btn-sm" onclick="showAddForm('subtheme')">Add Subtheme</button>
-      <button class="btn btn-primary btn-sm" onclick="showAddForm('category')">Add Category</button>
-      <button class="btn btn-primary btn-sm" onclick="showAddForm('name')">Add Name</button>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
       <!-- Column toggles -->
-      <div class="form-check col-toggle ms-3">
+      <div class="form-check col-toggle ms-1">
         <input class="form-check-input" type="checkbox" data-col="0" id="colName" checked>
         <label class="form-check-label" for="colName">Name</label>
       </div>
-      <div class="form-check col-toggle">
-        <input class="form-check-input" type="checkbox" data-col="1" id="colTheme" checked>
-        <label class="form-check-label" for="colTheme">Theme</label>
-      </div>
-      <div class="form-check col-toggle">
-        <input class="form-check-input" type="checkbox" data-col="2" id="colSubtheme" checked>
-        <label class="form-check-label" for="colSubtheme">Subtheme</label>
-      </div>
-      <div class="form-check col-toggle">
-        <input class="form-check-input" type="checkbox" data-col="3" id="colCategory" checked>
-        <label class="form-check-label" for="colCategory">Category</label>
-      </div>
-      <input type="text" id="searchInput" class="form-control form-control-sm search-bar ms-3" placeholder="Search...">
+      <% categoriesGroup.forEach(function(theme, tIdx) { %>
+        <div class="form-check col-toggle">
+          <input class="form-check-input" type="checkbox" data-theme="<%= theme.theme %>" checked>
+          <label class="form-check-label"><%= theme.theme %></label>
+        </div>
+      <% }) %>
+      <input type="text" id="nameFilterInput" class="form-control form-control-sm search-bar ms-3" placeholder="Filter Name...">
     </div>
-    <!-- Data Table -->
-    <div class="table-scroll">
-      <table class="table table-bordered table-striped align-middle" id="dataTable">
-        <thead>
+    <!-- Feedback notice bar -->
+    <div id="assignNotice" class="alert alert-success d-none" style="position:sticky;top:10px;z-index:99;"></div>
+    <!-- Matrix Table -->
+    <div class="matrix-scroll">
+    <table class="table matrix table-bordered table-hover align-middle" id="matrixTable">
+      <thead>
+        <!-- First row: theme -->
+        <tr>
+          <th style="min-width:120px;">Name</th>
+          <% categoriesGroup.forEach(function(theme, i) { %>
+            <th colspan="<%= theme.subthemes.reduce((s,st)=>s+st.categories.length,0) %>" data-theme="<%= theme.theme %>">
+              <%= theme.theme %>
+            </th>
+          <% }) %>
+        </tr>
+        <!-- Second row: subtheme -->
+        <tr>
+          <% categoriesGroup.forEach(function(theme) {
+               theme.subthemes.forEach(function(sub) { %>
+            <th colspan="<%= sub.categories.length %>" data-theme="<%= theme.theme %>">
+              <%= sub.subtheme %>
+            </th>
+          <% }) }) %>
+        </tr>
+        <!-- Third row: category -->
+        <tr>
+          <% categoriesGroup.forEach(function(theme) {
+               theme.subthemes.forEach(function(sub) {
+                 sub.categories.forEach(function(cat) { %>
+            <th data-theme="<%= theme.theme %>">
+              <%= cat.category %>
+            </th>
+          <% }) }) }) %>
+        </tr>
+      </thead>
+      <tbody>
+        <% names.forEach(function(name) { %>
           <tr>
-            <th>Name</th>
-            <th>Theme</th>
-            <th>Subtheme</th>
-            <th>Category</th>
-            <th>Action</th>
+            <td>
+              <button class="btn btn-danger btn-xs me-1" onclick="deleteName('<%= name.name_text %>')">Delete</button>
+              <%= name.name_text %>
+            </td>
+            <% categoriesGroup.forEach(function(theme) {
+                 theme.subthemes.forEach(function(sub) {
+                   sub.categories.forEach(function(cat) {
+                      var checked = ncs.find(nc => nc.name_id === name.id && nc.category_id === cat.id) ? 'checked' : '';
+            %>
+              <td class="cat-cell <%= checked ? 'active-x' : '' %>" data-theme="<%= theme.theme %>">
+                <input type="checkbox"
+                  data-nameid="<%= name.id %>"
+                  data-catid="<%= cat.id %>"
+                  <%= checked %>
+                  onchange="toggleAssign(this)">
+              </td>
+            <% }) }) }) %>
           </tr>
-        </thead>
-        <tbody>
-        <% data.forEach(function(row){ %>
-            <tr>
-                <td><%= row.name_text %></td>
-                <td><%= row.theme %></td>
-                <td><%= row.subtheme %></td>
-                <td><%= row.category %></td>
-                <td>
-                  <% if (!row.theme && !row.subtheme && !row.category) { %>
-                    <button class="btn btn-danger btn-xs"
-                      onclick="deleteName('<%= row.name_text %>')">Delete</button>
-                  <% } else { %>
-                    <button class="btn btn-danger btn-xs"
-                      onclick="deleteRow('<%= row.name_text %>', '<%= row.theme %>', '<%= row.subtheme %>', '<%= row.category %>')">Delete</button>
-                  <% } %>
-                </td>
-            </tr>
         <% }) %>
-        </tbody>
-      </table>
+      </tbody>
+    </table>
     </div>
     <!-- Add Form Modal -->
     <div class="modal" tabindex="-1" id="addFormModal">
@@ -149,43 +176,67 @@
       });
     return false;
   }
-  // Column toggle logic
-  document.querySelectorAll('.col-toggle input').forEach(function(checkbox) {
+
+  // Column toggle logic (theme columns)
+  document.querySelectorAll('.col-toggle input[data-theme]').forEach(function(checkbox) {
     checkbox.addEventListener('change', function() {
-      var col = parseInt(this.dataset.col);
+      var theme = this.dataset.theme;
       var display = this.checked ? '' : 'none';
-      document.querySelectorAll('#dataTable thead th')[col].style.display = display;
-      document.querySelectorAll('#dataTable tbody tr').forEach(function(row) {
-        if(row.children[col]) row.children[col].style.display = display;
+      // Hide/show all headers and cells of this theme
+      document.querySelectorAll('th[data-theme="'+theme+'"], td[data-theme="'+theme+'"]').forEach(function(cell) {
+        cell.style.display = display;
       });
     });
   });
-  // Search bar filtering
-  document.getElementById('searchInput').addEventListener('input', function() {
-    var value = this.value.toLowerCase();
-    var rows = document.querySelectorAll('#dataTable tbody tr');
-    rows.forEach(function(row) {
-      var text = row.innerText.toLowerCase();
-      row.style.display = (text.indexOf(value) > -1) ? '' : 'none';
+  // Name search/filter
+  document.getElementById('nameFilterInput').addEventListener('input', function() {
+    const val = this.value.trim().toLowerCase();
+    document.querySelectorAll('#matrixTable tbody tr').forEach(tr => {
+      const nameCell = tr.querySelector('td:first-child');
+      if (!val || (nameCell && nameCell.textContent.toLowerCase().includes(val))) {
+        tr.style.display = '';
+      } else {
+        tr.style.display = 'none';
+      }
     });
   });
-
-  // ----------- Delete Functions -----------
-  function deleteRow(name, theme, subtheme, category) {
-    if (!confirm('Delete this record (name-category relation)?')) return;
-    fetch('/admin/delete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, theme, subtheme, category })
-    }).then(resp => resp.json())
-      .then(json => {
-        if (json.success) location.reload();
-        else alert(json.message || 'Delete failed!');
-      });
+  // Assign/remove relationship with feedback
+  function showNotice(msg, type='success') {
+    const bar = document.getElementById('assignNotice');
+    bar.className = 'alert alert-' + type;
+    bar.innerText = msg;
+    bar.classList.remove('d-none');
+    bar.style.opacity = 1;
+    setTimeout(() => {
+      bar.style.opacity = 0;
+      setTimeout(() => { bar.classList.add('d-none'); }, 400);
+    }, 1400);
   }
-
+  function toggleAssign(cb) {
+    const name_id = cb.dataset.nameid;
+    const category_id = cb.dataset.catid;
+    fetch('/admin/assign-x', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name_id: name_id,
+        category_id: category_id,
+        action: cb.checked ? 'add' : 'remove'
+      })
+    }).then(resp => resp.json()).then(json => {
+      if (json.success) {
+        cb.parentNode.classList.toggle('active-x', cb.checked);
+        showNotice(cb.checked ? 'Assigned successfully!' : 'Assignment removed.', 'success');
+      } else {
+        alert(json.message || 'Update failed');
+        cb.checked = !cb.checked;
+        showNotice('Update failed!', 'danger');
+      }
+    });
+  }
+  // Delete Name (hard delete)
   function deleteName(name) {
-    if (!confirm('Delete this name (all records)?')) return;
+    if (!confirm('Delete this name and all its assignments?')) return;
     fetch('/admin/delete-name', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
