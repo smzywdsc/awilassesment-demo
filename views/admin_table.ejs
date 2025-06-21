@@ -42,13 +42,13 @@
     </div>
     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
       <div class="form-check col-toggle ms-1">
-        <input class="form-check-input" type="checkbox" data-col="0" id="colName" checked>
+        <input class="form-check-input" type="checkbox" data-theme-toggle="name" id="colName" checked>
         <label class="form-check-label" for="colName">Name</label>
       </div>
-      <% categoriesGroup.forEach(function(theme) { %>
+      <% categoriesGroup.forEach(function(theme, tIdx) { %>
         <div class="form-check col-toggle">
-          <input class="form-check-input" type="checkbox" data-theme="<%= theme.theme %>" checked>
-          <label class="form-check-label"><%= theme.theme %></label>
+          <input class="form-check-input" type="checkbox" data-theme-toggle="<%= theme.theme %>" id="toggle-<%= theme.theme %>" checked>
+          <label class="form-check-label" for="toggle-<%= theme.theme %>"><%= theme.theme %></label>
         </div>
       <% }) %>
       <input type="text" id="nameFilterInput" class="form-control form-control-sm search-bar ms-3" placeholder="Filter Name...">
@@ -59,16 +59,16 @@
       <thead>
         <!-- First row: Theme -->
         <tr>
-          <th rowspan="3" style="min-width:160px;">Name</th>
+          <th rowspan="3" class="th-name" data-theme-col="name" style="min-width:160px;">Name</th>
           <% categoriesGroup.forEach(function(theme) { %>
-            <th colspan="<%= theme.subthemes.reduce((s,st)=>s+st.categories.length,0) %>"><%= theme.theme %></th>
+            <th class="th-theme" data-theme-col="<%= theme.theme %>" colspan="<%= theme.subthemes.reduce((s,st)=>s+st.categories.length,0) %>"><%= theme.theme %></th>
           <% }) %>
         </tr>
         <!-- Second row: Subtheme -->
         <tr>
           <% categoriesGroup.forEach(function(theme) {
                theme.subthemes.forEach(function(sub) { %>
-            <th colspan="<%= sub.categories.length %>"><%= sub.subtheme %></th>
+            <th class="th-subtheme" data-theme-col="<%= theme.theme %>" colspan="<%= sub.categories.length %>"><%= sub.subtheme %></th>
           <% }) }) %>
         </tr>
         <!-- Third row: Category -->
@@ -76,14 +76,14 @@
           <% categoriesGroup.forEach(function(theme) {
                theme.subthemes.forEach(function(sub) {
                  sub.categories.forEach(function(cat) { %>
-            <th><%= cat.category %></th>
+            <th class="th-cat" data-theme-col="<%= theme.theme %>"><%= cat.category %></th>
           <% }) }) }) %>
         </tr>
       </thead>
       <tbody>
         <% names.forEach(function(name) { %>
           <tr>
-            <td>
+            <td class="td-name" data-theme-col="name">
               <button class="btn btn-danger btn-xs me-1 delete-btn" onclick="deleteName('<%= name.name_text %>')">Delete</button>
               <%= name.name_text %>
             </td>
@@ -92,7 +92,7 @@
                    sub.categories.forEach(function(cat) {
                       var checked = ncs.find(nc => nc.name_id === name.id && nc.category_id === cat.id) ? 'checked' : '';
             %>
-              <td class="cat-cell <%= checked ? 'active-x' : '' %>">
+              <td class="cat-cell td-theme" data-theme-col="<%= theme.theme %>">
                 <input type="checkbox"
                   data-nameid="<%= name.id %>"
                   data-catid="<%= cat.id %>"
@@ -122,6 +122,30 @@
     </div>
   </div>
 <script>
+  //Toggle function for the subject column, supports merging multiple layers of headers and hiding them together
+  document.querySelectorAll('.col-toggle input[type=checkbox][data-theme-toggle]').forEach(function(checkbox) {
+    checkbox.addEventListener('change', function() {
+      var theme = this.dataset.themeToggle;
+      var checked = this.checked;
+      document.querySelectorAll('[data-theme-col="'+theme+'"]').forEach(function(el){
+        el.style.display = checked ? '' : 'none';
+      });
+    });
+  });
+
+  // Name search/filter
+  document.getElementById('nameFilterInput').addEventListener('input', function() {
+    const val = this.value.trim().toLowerCase();
+    document.querySelectorAll('#matrixTable tbody tr').forEach(tr => {
+      const nameCell = tr.querySelector('td[data-theme-col="name"]');
+      if (!val || (nameCell && nameCell.textContent.toLowerCase().includes(val))) {
+        tr.style.display = '';
+      } else {
+        tr.style.display = 'none';
+      }
+    });
+  });
+
   function showAddForm(type) {
     document.getElementById('addFormModal').style.display = 'block';
     document.getElementById('addFormTitle').innerText = 'Add ' + type.charAt(0).toUpperCase() + type.slice(1);
@@ -167,26 +191,6 @@
       });
     return false;
   }
-  document.querySelectorAll('.col-toggle input[data-theme]').forEach(function(checkbox) {
-    checkbox.addEventListener('change', function() {
-      var theme = this.dataset.theme;
-      var display = this.checked ? '' : 'none';
-      document.querySelectorAll('th[data-theme="'+theme+'"], td[data-theme="'+theme+'"]').forEach(function(cell) {
-        cell.style.display = display;
-      });
-    });
-  });
-  document.getElementById('nameFilterInput').addEventListener('input', function() {
-    const val = this.value.trim().toLowerCase();
-    document.querySelectorAll('#matrixTable tbody tr').forEach(tr => {
-      const nameCell = tr.querySelector('td:first-child');
-      if (!val || (nameCell && nameCell.textContent.toLowerCase().includes(val))) {
-        tr.style.display = '';
-      } else {
-        tr.style.display = 'none';
-      }
-    });
-  });
   function showNotice(msg, type='success') {
     const bar = document.getElementById('assignNotice');
     bar.className = 'alert alert-' + type;
