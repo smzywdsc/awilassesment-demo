@@ -1,4 +1,4 @@
-<!-- v20240620-multicolumn-grouped -->
+<!-- v20240620-multicolumn-grouped (with feedback notice) -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -33,9 +33,10 @@
       .main-card { padding: 10px 2px; }
       .matrix { font-size: 13px; }
     }
-    /* 滚动表格 */
+    /* Table scroll */
     .matrix-scroll { overflow-x: auto; }
     .matrix { min-width: 1000px; }
+    #assignNotice { transition: opacity 0.35s; }
   </style>
 </head>
 <body>
@@ -47,6 +48,8 @@
       </h4>
       <a href="/admin/table" class="btn btn-outline-secondary btn-sm">&larr; Back to Data Management</a>
     </div>
+    <!-- Feedback notice bar -->
+    <div id="assignNotice" class="alert alert-success d-none" style="position:sticky;top:10px;z-index:99;"></div>
     <div class="matrix-scroll">
     <table class="table matrix table-bordered table-hover align-middle">
       <thead>
@@ -120,7 +123,20 @@
     </div>
   </div>
   <script>
-    // Assign/remove relationship
+    // Feedback bar function
+    function showNotice(msg, type='success') {
+      const bar = document.getElementById('assignNotice');
+      bar.className = 'alert alert-' + type;
+      bar.innerText = msg;
+      bar.classList.remove('d-none');
+      bar.style.opacity = 1;
+      setTimeout(() => {
+        bar.style.opacity = 0;
+        setTimeout(() => { bar.classList.add('d-none'); }, 400);
+      }, 1400);
+    }
+
+    // Assign/remove relationship with feedback
     function toggleAssign(cb) {
       const name_id = cb.dataset.nameid;
       const category_id = cb.dataset.catid;
@@ -135,9 +151,11 @@
       }).then(resp => resp.json()).then(json => {
         if (json.success) {
           cb.parentNode.classList.toggle('active-x', cb.checked);
+          showNotice(cb.checked ? 'Assigned successfully!' : 'Assignment removed.', 'success');
         } else {
           alert(json.message || 'Update failed');
           cb.checked = !cb.checked;
+          showNotice('Update failed!', 'danger');
         }
       });
     }
